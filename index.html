@@ -894,42 +894,395 @@
     }
 
     /* ==========================================================================
-       4. VISTA MAPA DE DEPENDENCIAS / BLOQUEOS (GRAFO)
+       4. VISTA MAPA DE DEPENDENCIAS / BLOQUEOS (GRAFO TIPO GIT)
        ========================================================================== */
     .dependency-graph-wrapper {
       background: var(--bg-surface);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
-      padding: 24px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
       flex: 1;
+      min-height: 0;
+    }
+
+    .git-graph-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      flex-wrap: wrap;
+    }
+
+    .git-toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .git-view-switcher {
+      display: inline-flex;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .git-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .git-toggle-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .git-zoom-controls {
+      display: inline-flex;
+      align-items: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 2px 4px;
+      gap: 4px;
+    }
+
+    .btn-icon-small {
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .btn-icon-small:hover {
+      background: var(--bg-card-hover);
+      color: var(--primary);
     }
 
     .graph-legend {
       display: flex;
       align-items: center;
-      gap: 20px;
-      padding: 10px 16px;
+      gap: 16px;
+      padding: 8px 14px;
       background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       flex-wrap: wrap;
     }
 
     .graph-legend-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .legend-color {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: var(--radius-sm);
     }
 
+    /* VIEWPORT Y CANVAS DEL GRAFO GIT */
+    .git-graph-viewport {
+      position: relative;
+      flex: 1;
+      min-height: 520px;
+      max-height: calc(100vh - 280px);
+      overflow: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background-color: #080c14;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+      background-size: 24px 24px;
+      cursor: grab;
+      user-select: none;
+    }
+
+    body.light-theme .git-graph-viewport {
+      background-color: #f1f5f9;
+      background-image: radial-gradient(rgba(0, 0, 0, 0.09) 1.2px, transparent 1.2px);
+    }
+
+    .git-graph-viewport.is-dragging {
+      cursor: grabbing;
+    }
+
+    .git-graph-canvas {
+      position: relative;
+      transform-origin: top left;
+      transition: transform 0.12s ease-out;
+    }
+
+    .git-graph-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    .git-graph-nodes-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* CURVAS SVG (RAMAS GIT) */
+    .git-edge {
+      fill: none;
+      stroke: #475569;
+      stroke-width: 2.2;
+      transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+      cursor: pointer;
+    }
+
+    .git-edge.edge-completed {
+      stroke: #10b981;
+      stroke-width: 2.2;
+      opacity: 0.85;
+    }
+
+    .git-edge.edge-blocked {
+      stroke: #ec4899;
+      stroke-width: 2.5;
+      stroke-dasharray: 6 4;
+      animation: dashMove 1.5s linear infinite;
+    }
+
+    @keyframes dashMove {
+      to {
+        stroke-dashoffset: -20;
+      }
+    }
+
+    .git-edge.edge-dimmed {
+      opacity: 0.08 !important;
+    }
+
+    .git-edge.edge-highlight-upstream {
+      stroke: #f59e0b !important;
+      stroke-width: 4 !important;
+      filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));
+      opacity: 1 !important;
+    }
+
+    .git-edge.edge-highlight-downstream {
+      stroke: #ec4899 !important;
+      stroke-width: 4 !important;
+      filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.8));
+      opacity: 1 !important;
+    }
+
+    .git-edge.edge-highlight-critical {
+      stroke: #ef4444 !important;
+      stroke-width: 4.5 !important;
+      filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.9));
+      opacity: 1 !important;
+    }
+
+    /* NODOS / COMMITS DEL GRAFO */
+    .git-commit-node {
+      position: absolute;
+      width: 280px;
+      height: 82px;
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .git-commit-node:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      border-color: var(--primary);
+    }
+
+    .git-commit-node.selected {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3), 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    .git-commit-node.dimmed {
+      opacity: 0.18;
+      filter: grayscale(0.5);
+    }
+
+    .git-commit-node.highlight-upstream {
+      border-color: #f59e0b !important;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.4) !important;
+    }
+
+    .git-commit-node.highlight-downstream {
+      border-color: #ec4899 !important;
+      box-shadow: 0 0 16px rgba(236, 72, 153, 0.4) !important;
+    }
+
+    .git-commit-node.critical-bottleneck {
+      border-color: var(--danger) !important;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.35);
+    }
+
+    .git-node-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .git-commit-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .git-commit-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      flex-shrink: 0;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .git-node-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.25;
+    }
+
+    .git-node-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .git-node-badges {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .git-badge-inbound, .git-badge-outbound, .git-badge-bottleneck {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    .git-badge-inbound {
+      background: rgba(99, 102, 241, 0.18);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .git-badge-outbound {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .git-badge-bottleneck {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      animation: pulseAlert 1.5s infinite;
+    }
+
+    @keyframes pulseAlert {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+
+    /* PANEL RÁPIDO DE INSPECCIÓN INFERIOR */
+    .git-node-quick-panel {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      max-width: 440px;
+      width: calc(100% - 40px);
+      background: var(--bg-card);
+      border: 1px solid var(--border-focus);
+      border-radius: var(--radius-lg);
+      padding: 14px 18px;
+      box-shadow: var(--shadow-lg), 0 0 24px rgba(79, 70, 229, 0.25);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: panelSlideUp 0.2s ease-out;
+      backdrop-filter: blur(12px);
+    }
+
+    @keyframes panelSlideUp {
+      from { transform: translateY(16px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .git-quick-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    /* MODO TARJETAS CLÁSICO */
     .graph-nodes-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1623,7 +1976,7 @@
         </div>
         <div class="nav-item" data-view="dependencies">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/><line x1="6" y1="9" x2="6" y2="15"/></svg>
-          <span>Mapa de Bloqueos</span>
+          <span>Grafo Git / Bloqueos</span>
           <span class="nav-badge" id="badge-blocked-count" style="background:var(--blocked-light); color:var(--blocked);">0</span>
         </div>
         <div class="nav-item" data-view="calendar">
@@ -1763,30 +2116,88 @@
         </div>
       </section>
 
-      <!-- VISTA 3: MAPA DE BLOQUEOS Y DEPENDENCIAS -->
+      <!-- VISTA 3: MAPA DE BLOQUEOS Y DEPENDENCIAS (GRAFO TIPO GIT) -->
       <section class="view-content" id="view-dependencies">
         <div class="dependency-graph-wrapper">
-          <div class="graph-legend">
-            <div class="graph-legend-item">
-              <span class="legend-color" style="background:var(--danger);"></span>
-              <span>Cuello de Botella Crítico (Bloquea a 2+ tareas)</span>
+          <!-- BARRA DE HERRAMIENTAS DEL GRAFO GIT -->
+          <div class="git-graph-toolbar">
+            <div class="git-toolbar-group">
+              <div class="git-view-switcher">
+                <button type="button" class="git-toggle-btn active" id="btn-dep-mode-graph" onclick="setDependenciesViewMode('graph')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/><line x1="6" y1="9" x2="6" y2="15"/></svg>
+                  <span>Grafo Git (DAG)</span>
+                </button>
+                <button type="button" class="git-toggle-btn" id="btn-dep-mode-cards" onclick="setDependenciesViewMode('cards')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                  <span>Tarjetas Detalladas</span>
+                </button>
+              </div>
+
+              <select class="filter-select" id="git-graph-project-filter" onchange="renderDependenciesView()" style="min-width:180px;">
+                <option value="all">Todas las ramas (Proyectos)</option>
+              </select>
+
+              <button type="button" class="btn btn-secondary" id="btn-toggle-bottlenecks" onclick="toggleBottleneckHighlight()" style="font-size:0.75rem; padding:5px 10px;" title="Resaltar cuellos de botella que bloquean el avance de otras tareas">
+                ⚡ Cuellos de Botella
+              </button>
             </div>
-            <div class="graph-legend-item">
-              <span class="legend-color" style="background:var(--blocked);"></span>
-              <span>Tarea Bloqueada (No puede comenzar)</span>
-            </div>
-            <div class="graph-legend-item">
-              <span class="legend-color" style="background:var(--warning);"></span>
-              <span>Completada con Avisos (Subtareas pendientes)</span>
-            </div>
-            <div class="graph-legend-item">
-              <span class="legend-color" style="background:var(--success);"></span>
-              <span>Completada con Éxito</span>
+
+            <div class="git-toolbar-group">
+              <div class="git-zoom-controls">
+                <button type="button" class="btn-icon-small" onclick="adjustGitGraphZoom(-0.15)" title="Reducir zoom">-</button>
+                <span id="git-graph-zoom-label" style="font-family:var(--font-mono); font-size:0.72rem; min-width:38px; text-align:center;">100%</span>
+                <button type="button" class="btn-icon-small" onclick="adjustGitGraphZoom(0.15)" title="Aumentar zoom">+</button>
+                <button type="button" class="btn-icon-small" onclick="resetGitGraphZoom()" title="Restablecer escala 100%">↺</button>
+              </div>
+              <span id="git-graph-stats" style="font-size:0.75rem; color:var(--text-dim);"></span>
             </div>
           </div>
 
-          <div class="graph-nodes-grid" id="dependencies-nodes-container">
-            <!-- Nodos renderizados dinámicamente -->
+          <!-- LEYENDA DEL GRAFO -->
+          <div class="graph-legend">
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:var(--success);"></span>
+              <span>Completada</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:var(--primary);"></span>
+              <span>En Progreso (Activa)</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:var(--blocked);"></span>
+              <span>Bloqueada (Esperando)</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:var(--danger); box-shadow:0 0 6px rgba(239,68,68,0.5);"></span>
+              <span>Cuello de Botella</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="git-badge-outbound" style="background:rgba(245,158,11,0.25); color:#fde047; border:1px solid rgba(245,158,11,0.5); font-weight:700; padding:2px 6px;">🌿 Fork (Bifurca)</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="git-badge-inbound" style="background:rgba(99,102,241,0.25); color:#a5b4fc; border:1px solid rgba(99,102,241,0.5); font-weight:700; padding:2px 6px;">🔀 Merge (Fusión)</span>
+            </div>
+            <div class="graph-legend-item" style="color:var(--text-muted); font-size:0.74rem; margin-left:auto;">
+              <span>💡 Pasa el ratón sobre un commit para iluminar su ruta • Clic para detalles • Doble clic para editar</span>
+            </div>
+          </div>
+
+          <!-- CONTENEDOR 1: GRAFO TIPO GIT (VIEWPORT + SVG + NODOS) -->
+          <div id="git-graph-viewport" class="git-graph-viewport">
+            <div id="git-graph-canvas" class="git-graph-canvas">
+              <svg id="git-graph-svg" class="git-graph-svg"></svg>
+              <div id="git-graph-nodes-layer" class="git-graph-nodes-layer"></div>
+            </div>
+
+            <!-- PANEL RÁPIDO FLOTANTE DE INSPECCIÓN DE NODO -->
+            <div id="git-node-quick-panel" class="git-node-quick-panel" style="display:none;">
+              <!-- Se rellena al hacer clic en un nodo -->
+            </div>
+          </div>
+
+          <!-- CONTENEDOR 2: VISTA CLÁSICA DE TARJETAS (DISPONIBLE POR SI SE DESEA) -->
+          <div class="graph-nodes-grid" id="dependencies-nodes-container" style="display:none;">
+            <!-- Nodos en tarjetas detalladas -->
           </div>
         </div>
       </section>
@@ -2405,7 +2816,7 @@
           status: 'bloqueada',
           startDate: '2026-10-08',
           dueDate: '2026-10-15',
-          blockedBy: ['tsk-102'],
+          blockedBy: ['tsk-102', 'tsk-106'], // Merge de 2 ramas (TSK-102 + TSK-106)
           subtasks: [
             { id: 'sub-6', title: 'Simulación de 500 usuarios concurrentes', completed: false },
             { id: 'sub-7', title: 'Informe de latencia y picos de CPU', completed: false }
@@ -2445,6 +2856,24 @@
           subtasks: [
             { id: 'sub-10', title: 'Revisión de accesos VPN', completed: false },
             { id: 'sub-11', title: 'Difusión de pautas anti-phishing', completed: false }
+          ]
+        },
+        {
+          id: 'tsk-106',
+          code: 'TSK-106',
+          title: 'Sincronización y servicio ETL de almacén logístico',
+          description: 'Carga masiva de inventario y stocks vinculada a la base de datos (TSK-101). Rama paralela que nace de TSK-101.',
+          projectId: 'prj-1',
+          meetingId: 'meet-1',
+          assignedTo: 'Laura',
+          priority: 'media',
+          status: 'en_progreso',
+          startDate: '2026-10-02',
+          dueDate: '2026-10-12',
+          blockedBy: ['tsk-101'], // Segunda rama que nace de TSK-101 (FORK)
+          subtasks: [
+            { id: 'sub-12', title: 'Mapeo de catálogo ERP a WMS', completed: true },
+            { id: 'sub-13', title: 'Prueba de concurrencia y replicación', completed: false }
           ]
         }
       ]
@@ -2790,7 +3219,7 @@
       const titles = {
         kanban: { t: 'Tablero Kanban', s: 'Gestión visual de tareas por columnas de estado y arrastre' },
         gantt: { t: 'Cronograma Gantt', s: 'Línea de tiempo con fechas límite, reuniones e hitos' },
-        dependencies: { t: 'Mapa de Bloqueos y Dependencias', s: 'Trazabilidad de cuellos de botella e impedimentos entre tareas' },
+        dependencies: { t: 'Grafo Git y Mapa de Dependencias', s: 'Trazabilidad interactiva de ramas, fusiones (merges), bloqueos y dependencias entre tareas' },
         calendar: { t: 'Calendario Mensual', s: 'Planificación de entregas de tareas y convocatorias de reuniones' },
         table: { t: 'Lista Detallada', s: 'Visualización tabular para búsqueda y filtrado rápido' },
         meetings: { t: 'Reuniones y Actas', s: 'Registro de actas, notas rápidas y compromisos de proyecto' },
@@ -3253,71 +3682,618 @@
     }
 
     /* ==========================================================================
-       RENDERIZADO: 3. MAPA DE BLOQUEOS Y DEPENDENCIAS (GRAFO)
+       RENDERIZADO: 3. MAPA DE BLOQUEOS Y DEPENDENCIAS (GRAFO TIPO GIT)
        ========================================================================== */
-    function renderDependenciesView() {
-      const container = document.getElementById('dependencies-nodes-container');
-      if (!container) return;
+    let dependenciesViewMode = 'graph'; // 'graph' o 'cards'
+    let gitGraphZoom = 1;
+    let highlightBottlenecksOnly = false;
+    let selectedGitNodeId = null;
+    let gitPanInitialized = false;
 
-      const activeTasks = filteredTasksCache;
+    function setDependenciesViewMode(mode) {
+      dependenciesViewMode = mode;
+      const btnGraph = document.getElementById('btn-dep-mode-graph');
+      const btnCards = document.getElementById('btn-dep-mode-cards');
+      const viewportEl = document.getElementById('git-graph-viewport');
+      const cardsEl = document.getElementById('dependencies-nodes-container');
 
-      if (activeTasks.length === 0) {
-        const msg = appData.tasks.length === 0
-          ? 'No hay tareas registradas en el sistema.'
-          : 'No se encontraron tareas que coincidan con la búsqueda o filtros activos.';
-        container.innerHTML = `
-          <div style="grid-column:1 / -1; width:100%; padding:48px 24px; text-align:center; color:var(--text-dim); background:var(--bg-surface); border-radius:var(--radius-lg); border:1px dashed var(--border-subtle);">
-            <div>${msg}</div>
-            ${appData.tasks.length > 0 ? '<button type="button" class="btn btn-secondary" style="margin-top:12px; font-size:0.8rem;" onclick="clearAllFilters()">Limpiar filtros</button>' : ''}
+      if (btnGraph) btnGraph.classList.toggle('active', mode === 'graph');
+      if (btnCards) btnCards.classList.toggle('active', mode === 'cards');
+
+      if (viewportEl) viewportEl.style.display = mode === 'graph' ? 'block' : 'none';
+      if (cardsEl) cardsEl.style.display = mode === 'cards' ? 'grid' : 'none';
+
+      renderDependenciesView();
+    }
+
+    function adjustGitGraphZoom(delta) {
+      gitGraphZoom = Math.max(0.5, Math.min(1.8, Math.round((gitGraphZoom + delta) * 100) / 100));
+      updateGitGraphZoomUI();
+    }
+
+    function resetGitGraphZoom() {
+      gitGraphZoom = 1;
+      updateGitGraphZoomUI();
+    }
+
+    function updateGitGraphZoomUI() {
+      const canvasEl = document.getElementById('git-graph-canvas');
+      const labelEl = document.getElementById('git-graph-zoom-label');
+      if (canvasEl) {
+        canvasEl.style.transform = `scale(${gitGraphZoom})`;
+      }
+      if (labelEl) {
+        labelEl.textContent = `${Math.round(gitGraphZoom * 100)}%`;
+      }
+    }
+
+    function toggleBottleneckHighlight() {
+      highlightBottlenecksOnly = !highlightBottlenecksOnly;
+      const btn = document.getElementById('btn-toggle-bottlenecks');
+      if (btn) {
+        if (highlightBottlenecksOnly) {
+          btn.classList.add('btn-primary');
+          btn.classList.remove('btn-secondary');
+        } else {
+          btn.classList.remove('btn-primary');
+          btn.classList.add('btn-secondary');
+        }
+      }
+      renderDependenciesView();
+    }
+
+    function initGitGraphPanEvents() {
+      if (gitPanInitialized) return;
+      const viewport = document.getElementById('git-graph-viewport');
+      if (!viewport) return;
+
+      let isDown = false;
+      let startX, startY, scrollLeft, scrollTop;
+
+      viewport.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.git-commit-node') || e.target.closest('button') || e.target.closest('a') || e.target.closest('.git-node-quick-panel')) {
+          return;
+        }
+        isDown = true;
+        viewport.classList.add('is-dragging');
+        startX = e.pageX - viewport.offsetLeft;
+        startY = e.pageY - viewport.offsetTop;
+        scrollLeft = viewport.scrollLeft;
+        scrollTop = viewport.scrollTop;
+      });
+
+      viewport.addEventListener('mouseleave', () => {
+        isDown = false;
+        viewport.classList.remove('is-dragging');
+      });
+
+      viewport.addEventListener('mouseup', (e) => {
+        isDown = false;
+        viewport.classList.remove('is-dragging');
+        if (e.target === viewport || e.target.id === 'git-graph-svg' || e.target.id === 'git-graph-canvas') {
+          closeGitNodeQuickPanel();
+        }
+      });
+
+      viewport.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - viewport.offsetLeft;
+        const y = e.pageY - viewport.offsetTop;
+        const walkX = (x - startX) * 1.2;
+        const walkY = (y - startY) * 1.2;
+        viewport.scrollLeft = scrollLeft - walkX;
+        viewport.scrollTop = scrollTop - walkY;
+      });
+
+      gitPanInitialized = true;
+    }
+
+    function selectGitNode(taskId) {
+      selectedGitNodeId = taskId;
+      const task = appData.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      highlightNodeConnections(taskId);
+
+      document.querySelectorAll('.git-commit-node').forEach(el => {
+        el.classList.toggle('selected', el.dataset.taskId === taskId);
+      });
+
+      const panel = document.getElementById('git-node-quick-panel');
+      if (!panel) return;
+
+      const blockers = getBlockersInfo(task);
+      const blockedByThis = getTasksBlockedBy(task.id);
+      const project = appData.projects.find(p => p.id === task.projectId);
+      const isCritical = blockedByThis.length >= 2 && task.status !== 'completada';
+
+      panel.innerHTML = `
+        <div class="git-quick-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="card-code" style="font-size:0.85rem; font-weight:700;">${task.code}</span>
+            <span class="badge badge-priority-${task.priority}">${task.priority.toUpperCase()}</span>
+            ${project ? `<span class="project-tag" style="background:${project.color}22; color:${project.color}; border:1px solid ${project.color}44;">${escapeHTML(project.name)}</span>` : ''}
+            ${blockers.length >= 2 ? `<span class="git-badge-inbound" style="background:rgba(99,102,241,0.25); color:#a5b4fc; border:1px solid rgba(99,102,241,0.5); font-weight:700;">🔀 Merge (${blockers.length})</span>` : ''}
+            ${blockedByThis.length >= 2 ? `<span class="git-badge-outbound" style="background:rgba(245,158,11,0.25); color:#fde047; border:1px solid rgba(245,158,11,0.5); font-weight:700;">🌿 Fork (${blockedByThis.length})</span>` : ''}
+            ${isCritical ? `<span class="git-badge-bottleneck">⚡ Cuello Crítico</span>` : ''}
           </div>
+          <button type="button" class="btn-icon-small" onclick="closeGitNodeQuickPanel()" title="Cerrar panel">&times;</button>
+        </div>
+
+        <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-top:2px;">${escapeHTML(task.title)}</div>
+        <div style="font-size:0.78rem; color:var(--text-muted); display:flex; gap:12px;">
+          <span>Asignado: <strong>@${escapeHTML(task.assignedTo || 'Sin asignar')}</strong></span>
+          <span>Estado: <strong style="color:${task.status === 'completada' ? 'var(--success)' : (task.status === 'bloqueada' ? 'var(--blocked)' : 'var(--primary)')};">${task.status.replace('_', ' ').toUpperCase()}</strong></span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px;">
+          <!-- Bloqueada por -->
+          <div style="background:var(--bg-surface); padding:8px 10px; border-radius:var(--radius-sm); font-size:0.75rem; border:1px solid var(--border-subtle);">
+            <div style="color:var(--text-dim); font-weight:600; margin-bottom:4px;">🔒 Bloqueada por (${blockers.length}):</div>
+            ${blockers.length === 0 ? '<span style="color:var(--text-muted);">Sin dependencias previas</span>' : blockers.map(b => `
+              <div style="margin-top:3px; display:flex; align-items:center; gap:4px;">
+                <span>${b.status === 'completada' ? '✅' : '🛑'}</span>
+                <a href="#" onclick="selectGitNode('${b.id}'); return false;" style="color:${b.status === 'completada' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Bloquea a -->
+          <div style="background:var(--bg-surface); padding:8px 10px; border-radius:var(--radius-sm); font-size:0.75rem; border:1px solid var(--border-subtle);">
+            <div style="color:var(--text-dim); font-weight:600; margin-bottom:4px;">⚠️ Bloquea el paso a (${blockedByThis.length}):</div>
+            ${blockedByThis.length === 0 ? '<span style="color:var(--text-muted);">No bloquea a otras tareas</span>' : blockedByThis.map(b => `
+              <div style="margin-top:3px; display:flex; align-items:center; gap:4px;">
+                <span>⏳</span>
+                <a href="#" onclick="selectGitNode('${b.id}'); return false;" style="color:#fbbf24; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px;">
+          <button type="button" class="btn btn-secondary" style="font-size:0.78rem; padding:4px 10px;" onclick="closeGitNodeQuickPanel()">Cerrar</button>
+          <button type="button" class="btn btn-primary" style="font-size:0.78rem; padding:4px 12px;" onclick="openEditTaskModal('${task.id}')">
+            <span>✏️ Abrir Ficha Completa</span>
+          </button>
+        </div>
+      `;
+
+      panel.style.display = 'flex';
+    }
+
+    function closeGitNodeQuickPanel() {
+      const panel = document.getElementById('git-node-quick-panel');
+      if (panel) panel.style.display = 'none';
+      selectedGitNodeId = null;
+      document.querySelectorAll('.git-commit-node').forEach(el => {
+        el.classList.remove('selected');
+      });
+      clearNodeHighlight();
+    }
+
+    function highlightNodeConnections(taskId) {
+      const taskMap = new Map();
+      appData.tasks.forEach(t => taskMap.set(t.id, t));
+
+      const upstream = new Set();
+      function getUpstream(id) {
+        const t = taskMap.get(id);
+        if (!t || !t.blockedBy) return;
+        t.blockedBy.forEach(bId => {
+          if (!upstream.has(bId)) {
+            upstream.add(bId);
+            getUpstream(bId);
+          }
+        });
+      }
+      getUpstream(taskId);
+
+      const downstream = new Set();
+      function getDownstream(id) {
+        appData.tasks.forEach(t => {
+          if (t.blockedBy && t.blockedBy.includes(id)) {
+            if (!downstream.has(t.id)) {
+              downstream.add(t.id);
+              getDownstream(t.id);
+            }
+          }
+        });
+      }
+      getDownstream(taskId);
+
+      document.querySelectorAll('.git-commit-node').forEach(nodeEl => {
+        const id = nodeEl.dataset.taskId;
+        const isSelf = id === taskId;
+        const isUp = upstream.has(id);
+        const isDown = downstream.has(id);
+
+        nodeEl.classList.toggle('highlight-upstream', isUp);
+        nodeEl.classList.toggle('highlight-downstream', isDown);
+        nodeEl.classList.toggle('dimmed', !isSelf && !isUp && !isDown);
+      });
+
+      document.querySelectorAll('.git-edge').forEach(edgeEl => {
+        const from = edgeEl.dataset.from;
+        const to = edgeEl.dataset.to;
+
+        const isDirectUp = to === taskId || (upstream.has(to) && upstream.has(from));
+        const isDirectDown = from === taskId || (downstream.has(from) && downstream.has(to));
+
+        edgeEl.classList.toggle('edge-highlight-upstream', isDirectUp);
+        edgeEl.classList.toggle('edge-highlight-downstream', isDirectDown);
+        edgeEl.classList.toggle('edge-dimmed', !isDirectUp && !isDirectDown);
+      });
+    }
+
+    function clearNodeHighlight() {
+      if (selectedGitNodeId) {
+        highlightNodeConnections(selectedGitNodeId);
+        return;
+      }
+      document.querySelectorAll('.git-commit-node').forEach(nodeEl => {
+        nodeEl.classList.remove('highlight-upstream', 'highlight-downstream', 'dimmed');
+      });
+      document.querySelectorAll('.git-edge').forEach(edgeEl => {
+        edgeEl.classList.remove('edge-highlight-upstream', 'edge-highlight-downstream', 'edge-dimmed');
+      });
+    }
+
+    function renderDependenciesView() {
+      const projectFilterEl = document.getElementById('git-graph-project-filter');
+      if (projectFilterEl) {
+        const curVal = projectFilterEl.value || 'all';
+        projectFilterEl.innerHTML = `
+          <option value="all" ${curVal === 'all' ? 'selected' : ''}>Todas las ramas (Proyectos)</option>
+          <option value="none" ${curVal === 'none' ? 'selected' : ''}>Sin Proyecto (Transversales)</option>
+          ${appData.projects.map(p => `
+            <option value="${p.id}" ${curVal === p.id ? 'selected' : ''}>${escapeHTML(p.name)} (${p.code})</option>
+          `).join('')}
         `;
+      }
+
+      let activeTasks = filteredTasksCache;
+      const selectedProjectInGraph = projectFilterEl ? projectFilterEl.value : 'all';
+      if (selectedProjectInGraph !== 'all') {
+        if (selectedProjectInGraph === 'none') {
+          activeTasks = activeTasks.filter(t => !t.projectId);
+        } else {
+          activeTasks = activeTasks.filter(t => t.projectId === selectedProjectInGraph);
+        }
+      }
+
+      if (highlightBottlenecksOnly) {
+        activeTasks = activeTasks.filter(t => {
+          const blocked = getTasksBlockedBy(t.id);
+          return blocked.length >= 2 && t.status !== 'completada';
+        });
+      }
+
+      // MODO TARJETAS CLÁSICO
+      if (dependenciesViewMode === 'cards') {
+        const cardsContainer = document.getElementById('dependencies-nodes-container');
+        if (!cardsContainer) return;
+        if (activeTasks.length === 0) {
+          cardsContainer.innerHTML = `
+            <div style="grid-column:1 / -1; width:100%; padding:48px 24px; text-align:center; color:var(--text-dim); background:var(--bg-surface); border-radius:var(--radius-lg); border:1px dashed var(--border-subtle);">
+              <div>No hay tareas que coincidan con la búsqueda o filtros activos.</div>
+              <button type="button" class="btn btn-secondary" style="margin-top:12px; font-size:0.8rem;" onclick="clearAllFilters()">Limpiar filtros</button>
+            </div>
+          `;
+          return;
+        }
+
+        cardsContainer.innerHTML = activeTasks.map(task => {
+          const blockers = getBlockersInfo(task);
+          const blockedByThis = getTasksBlockedBy(task.id);
+          const isCriticalBottleneck = blockedByThis.length >= 2 && task.status !== 'completada';
+
+          return `
+            <div class="dependency-node-card ${isCriticalBottleneck ? 'critical-bottleneck' : ''}">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="card-code">${task.code}</span>
+                <span class="badge badge-priority-${task.priority}">${task.priority.toUpperCase()}</span>
+              </div>
+              <div style="font-weight:700; font-size:0.92rem; color:var(--text-main);">${escapeHTML(task.title)}</div>
+
+              <div style="background:var(--bg-surface); padding:8px 10px; border-radius:var(--radius-sm); font-size:0.78rem;">
+                <div style="color:var(--text-dim); margin-bottom:4px; font-weight:600;">🔒 Depende de (Bloqueada por):</div>
+                ${blockers.length === 0 ? '<span style="color:var(--text-muted);">Sin dependencias directas</span>' : blockers.map(b => `
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                    <span>${b.status === 'completada' ? '✅' : '🛑'}</span>
+                    <a href="#" onclick="openEditTaskModal('${b.id}'); return false;" style="color:${b.status === 'completada' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div style="background:var(--bg-surface); padding:8px 10px; border-radius:var(--radius-sm); font-size:0.78rem;">
+                <div style="color:var(--text-dim); margin-bottom:4px; font-weight:600;">⚠️ Tareas a las que bloquea el paso:</div>
+                ${blockedByThis.length === 0 ? '<span style="color:var(--text-muted);">No bloquea a ninguna otra tarea</span>' : blockedByThis.map(b => `
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                    <span>⏳</span>
+                    <a href="#" onclick="openEditTaskModal('${b.id}'); return false;" style="color:#fbbf24; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.75rem;">
+                <span class="badge ${task.status === 'completada' ? 'badge-priority-baja' : (task.status === 'completada_avisos' ? 'badge-warning-completed' : 'badge-blocked')}">${task.status.replace('_', ' ').toUpperCase()}</span>
+                <button class="btn btn-secondary" style="font-size:0.72rem; padding:3px 8px;" onclick="openEditTaskModal('${task.id}')">Editar Tarea</button>
+              </div>
+            </div>
+          `;
+        }).join('');
         return;
       }
 
-      container.innerHTML = activeTasks.map(task => {
-        const isBlocked = isTaskBlocked(task);
-        const blockers = getBlockersInfo(task);
+      // MODO GRAFO TIPO GIT (DAG)
+      initGitGraphPanEvents();
+
+      const viewport = document.getElementById('git-graph-viewport');
+      const canvas = document.getElementById('git-graph-canvas');
+      const svg = document.getElementById('git-graph-svg');
+      const nodesLayer = document.getElementById('git-graph-nodes-layer');
+      const statsEl = document.getElementById('git-graph-stats');
+
+      if (!viewport || !canvas || !svg || !nodesLayer) return;
+
+      if (activeTasks.length === 0) {
+        svg.innerHTML = '';
+        nodesLayer.innerHTML = '';
+        canvas.style.width = '100%';
+        canvas.style.height = '420px';
+        const msg = appData.tasks.length === 0
+          ? 'No hay tareas registradas en el sistema para generar el grafo.'
+          : 'No se encontraron tareas con los filtros actuales.';
+        nodesLayer.innerHTML = `
+          <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-dim); text-align:center; padding:30px;">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" style="opacity:0.3; margin-bottom:12px;"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/><line x1="6" y1="9" x2="6" y2="15"/></svg>
+            <div style="font-size:0.95rem; font-weight:600; color:var(--text-muted);">${msg}</div>
+            ${appData.tasks.length > 0 ? '<button type="button" class="btn btn-secondary" style="margin-top:12px; font-size:0.8rem;" onclick="clearAllFilters()">Limpiar filtros</button>' : ''}
+          </div>
+        `;
+        if (statsEl) statsEl.textContent = '0 commits';
+        return;
+      }
+
+      // CÁLCULO TOPOLÓGICO (DAG)
+      const taskMap = new Map();
+      activeTasks.forEach(t => taskMap.set(t.id, t));
+
+      const levels = new Map();
+      activeTasks.forEach(t => {
+        const blockers = (t.blockedBy || []).filter(id => taskMap.has(id));
+        if (blockers.length === 0) levels.set(t.id, 0);
+      });
+
+      let changed = true;
+      let iterations = 0;
+      const maxIterations = activeTasks.length + 5;
+      while (changed && iterations < maxIterations) {
+        changed = false;
+        iterations++;
+        activeTasks.forEach(t => {
+          const blockers = (t.blockedBy || []).filter(id => taskMap.has(id));
+          if (blockers.length > 0) {
+            let maxL = -1;
+            blockers.forEach(bId => {
+              const bl = levels.has(bId) ? levels.get(bId) : 0;
+              if (bl > maxL) maxL = bl;
+            });
+            const nL = maxL + 1;
+            if (!levels.has(t.id) || levels.get(t.id) !== nL) {
+              levels.set(t.id, nL);
+              changed = true;
+            }
+          }
+        });
+      }
+      activeTasks.forEach(t => { if (!levels.has(t.id)) levels.set(t.id, 0); });
+
+      let maxLevel = 0;
+      const columns = [];
+      activeTasks.forEach(t => {
+        const lvl = levels.get(t.id) || 0;
+        if (lvl > maxLevel) maxLevel = lvl;
+        if (!columns[lvl]) columns[lvl] = [];
+        columns[lvl].push(t);
+      });
+
+      columns.forEach(col => {
+        if (!col) return;
+        col.sort((a, b) => {
+          const pA = a.projectId || 'zzz';
+          const pB = b.projectId || 'zzz';
+          if (pA !== pB) return pA.localeCompare(pB);
+          return a.code.localeCompare(b.code);
+        });
+      });
+
+      const CARD_W = 280;
+      const CARD_H = 82;
+      const GAP_X = 120;
+      const GAP_Y = 28;
+      const PADDING_LEFT = 50;
+      const PADDING_TOP = 80;
+
+      let maxRows = 1;
+      columns.forEach(col => {
+        if (col && col.length > maxRows) maxRows = col.length;
+      });
+
+      const totalCols = maxLevel + 1;
+      const canvasWidth = Math.max(viewport.clientWidth, PADDING_LEFT * 2 + totalCols * (CARD_W + GAP_X));
+      const canvasHeight = Math.max(500, PADDING_TOP + maxRows * (CARD_H + GAP_Y) + 60);
+
+      canvas.style.width = `${canvasWidth}px`;
+      canvas.style.height = `${canvasHeight}px`;
+
+      const nodePositions = new Map();
+      columns.forEach((col, colIdx) => {
+        if (!col) return;
+        const x = PADDING_LEFT + colIdx * (CARD_W + GAP_X);
+        col.forEach((task, rowIdx) => {
+          const y = PADDING_TOP + rowIdx * (CARD_H + GAP_Y);
+          nodePositions.set(task.id, { x, y, width: CARD_W, height: CARD_H, task, col: colIdx, row: rowIdx });
+        });
+      });
+
+      let svgContent = `
+        <defs>
+          <marker id="git-arrow-normal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#64748b" />
+          </marker>
+          <marker id="git-arrow-completed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#10b981" />
+          </marker>
+          <marker id="git-arrow-blocked" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#ec4899" />
+          </marker>
+          <marker id="git-arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#f59e0b" />
+          </marker>
+          <marker id="git-arrow-pink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#ec4899" />
+          </marker>
+        </defs>
+      `;
+
+      columns.forEach((col, colIdx) => {
+        if (!col || col.length === 0) return;
+        const x = PADDING_LEFT + colIdx * (CARD_W + GAP_X);
+        const stageLabel = colIdx === 0
+          ? 'ETAPA 0 · RAÍCES'
+          : `ETAPA ${colIdx} · FLUJO +${colIdx}`;
+
+        svgContent += `
+          <g transform="translate(${x}, 24)">
+            <rect x="0" y="0" width="${CARD_W}" height="32" rx="6" fill="var(--bg-card)" stroke="var(--border-subtle)" stroke-width="1"/>
+            <text x="${CARD_W / 2}" y="20" text-anchor="middle" fill="var(--text-muted)" font-family="var(--font-mono)" font-size="11" font-weight="700" letter-spacing="1">${stageLabel} (${col.length})</text>
+          </g>
+          <line x1="${x + CARD_W + GAP_X / 2}" y1="20" x2="${x + CARD_W + GAP_X / 2}" y2="${canvasHeight - 20}" stroke="rgba(255,255,255,0.04)" stroke-dasharray="4 4" />
+        `;
+      });
+
+      let totalEdges = 0;
+      let activeBlockedEdges = 0;
+
+      activeTasks.forEach(task => {
+        const targetNode = nodePositions.get(task.id);
+        if (!targetNode) return;
+
+        const blockers = (task.blockedBy || []).filter(id => nodePositions.has(id));
+        blockers.forEach(bId => {
+          const sourceNode = nodePositions.get(bId);
+          if (!sourceNode) return;
+
+          totalEdges++;
+          const sourceTask = sourceNode.task;
+          const isCompleted = sourceTask.status === 'completada';
+          if (!isCompleted) activeBlockedEdges++;
+
+          const x1 = sourceNode.x + sourceNode.width;
+          const y1 = sourceNode.y + sourceNode.height / 2;
+          const x2 = targetNode.x;
+          const y2 = targetNode.y + targetNode.height / 2;
+
+          let pathD;
+          if (x2 > x1) {
+            const dx = (x2 - x1) * 0.5;
+            pathD = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+          } else {
+            pathD = `M ${x1} ${y1} C ${x1 + 60} ${y1 - 50}, ${x2 - 60} ${y2 - 50}, ${x2} ${y2}`;
+          }
+
+          const edgeClass = isCompleted ? 'edge-completed' : 'edge-blocked';
+          const markerId = isCompleted ? 'git-arrow-completed' : 'git-arrow-blocked';
+
+          svgContent += `
+            <path class="git-edge ${edgeClass}"
+                  data-from="${bId}"
+                  data-to="${task.id}"
+                  d="${pathD}"
+                  marker-end="url(#${markerId})" />
+          `;
+        });
+      });
+
+      svg.innerHTML = svgContent;
+      svg.setAttribute('width', canvasWidth);
+      svg.setAttribute('height', canvasHeight);
+      svg.setAttribute('viewBox', `0 0 ${canvasWidth} ${canvasHeight}`);
+
+      let nodesHTML = '';
+      nodePositions.forEach(node => {
+        const { x, y, width, height, task } = node;
+        const project = appData.projects.find(p => p.id === task.projectId);
+        const branchColor = project ? project.color : '#8b5cf6';
+        const projectName = project ? project.code : 'GRAL';
+
+        const blockers = (task.blockedBy || []).filter(id => taskMap.has(id));
         const blockedByThis = getTasksBlockedBy(task.id);
-        const isCriticalBottleneck = blockedByThis.length >= 2 && task.status !== 'completada';
+        const isCritical = blockedByThis.length >= 2 && task.status !== 'completada';
 
-        return `
-          <div class="dependency-node-card ${isCriticalBottleneck ? 'critical-bottleneck' : ''}">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span class="card-code">${task.code}</span>
-              <span class="badge badge-priority-${task.priority}">${task.priority.toUpperCase()}</span>
+        let statusDotHTML = '';
+        if (task.status === 'completada') {
+          statusDotHTML = `<span class="git-commit-dot" style="background:var(--success); color:#fff;">✓</span>`;
+        } else if (task.status === 'en_progreso') {
+          statusDotHTML = `<span class="git-commit-dot" style="background:var(--primary); color:#fff; box-shadow:0 0 8px var(--primary);">●</span>`;
+        } else if (task.status === 'bloqueada') {
+          statusDotHTML = `<span class="git-commit-dot" style="background:var(--blocked); color:#fff;">🔒</span>`;
+        } else {
+          statusDotHTML = `<span class="git-commit-dot" style="background:#64748b; color:#fff;">○</span>`;
+        }
+
+        nodesHTML += `
+          <div class="git-commit-node ${isCritical ? 'critical-bottleneck' : ''}"
+               data-task-id="${task.id}"
+               style="left:${x}px; top:${y}px; width:${width}px; height:${height}px; border-left:4px solid ${branchColor};"
+               onclick="selectGitNode('${task.id}')"
+               ondblclick="openEditTaskModal('${task.id}')"
+               onmouseenter="highlightNodeConnections('${task.id}')"
+               onmouseleave="clearNodeHighlight()"
+               title="Doble clic para editar ${task.code}">
+
+            <div class="git-node-header">
+              <div class="git-commit-pill">
+                ${statusDotHTML}
+                <span>${task.code}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <span class="badge badge-priority-${task.priority}" style="font-size:0.62rem; padding:1px 5px;">${task.priority.slice(0,3).toUpperCase()}</span>
+                <span class="project-tag" style="background:${branchColor}18; color:${branchColor}; border:1px solid ${branchColor}44; font-size:0.62rem; padding:1px 5px;">${escapeHTML(projectName)}</span>
+              </div>
             </div>
 
-            <div style="font-weight:700; font-size:0.92rem; color:var(--text-main);">${escapeHTML(task.title)}</div>
-
-            <!-- Tareas que la bloquean -->
-            <div style="background:var(--bg-surface); padding:8px 10px; border-radius:var(--radius-sm); font-size:0.78rem;">
-              <div style="color:var(--text-dim); margin-bottom:4px; font-weight:600;">🔒 Depende de (Bloqueada por):</div>
-              ${blockers.length === 0 ? '<span style="color:var(--text-muted);">Sin dependencias directas</span>' : blockers.map(b => `
-                <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
-                  <span>${b.status === 'completada' ? '✅' : '🛑'}</span>
-                  <a href="#" onclick="openEditTaskModal('${b.id}'); return false;" style="color:${b.status === 'completada' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
-                </div>
-              `).join('')}
+            <div class="git-node-title" title="${escapeHTML(task.title)}">
+              ${escapeHTML(task.title)}
             </div>
 
-            <!-- Tareas que esta tarea bloquea -->
-            <div style="background:var(--bg-surface); padding:8px 10px; border-radius:var(--radius-sm); font-size:0.78rem;">
-              <div style="color:var(--text-dim); margin-bottom:4px; font-weight:600;">⚠️ Tareas a las que bloquea el paso:</div>
-              ${blockedByThis.length === 0 ? '<span style="color:var(--text-muted);">No bloquea a ninguna otra tarea</span>' : blockedByThis.map(b => `
-                <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
-                  <span>⏳</span>
-                  <a href="#" onclick="openEditTaskModal('${b.id}'); return false;" style="color:#fbbf24; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
-                </div>
-              `).join('')}
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.75rem;">
-              <span class="badge ${task.status === 'completada' ? 'badge-priority-baja' : (task.status === 'completada_avisos' ? 'badge-warning-completed' : 'badge-blocked')}">${task.status.replace('_', ' ').toUpperCase()}</span>
-              <button class="btn btn-secondary" style="font-size:0.72rem; padding:3px 8px;" onclick="openEditTaskModal('${task.id}')">Editar Tarea</button>
+            <div class="git-node-footer">
+              <span style="display:flex; align-items:center; gap:3px;">
+                <span style="color:var(--text-dim);">@</span>${escapeHTML(task.assignedTo || 'Sin asignar')}
+              </span>
+              <div class="git-node-badges">
+                ${blockers.length > 1 ? `<span class="git-badge-inbound" style="background:rgba(99,102,241,0.25); color:#a5b4fc; border:1px solid rgba(99,102,241,0.5); font-weight:700;" title="Merge: ${blockers.length} ramas convergen en esta tarea">🔀 Merge (${blockers.length})</span>` : (blockers.length === 1 ? `<span class="git-badge-inbound" title="1 dependencia previa">⬅ 1</span>` : '')}
+                ${blockedByThis.length > 1 ? `<span class="git-badge-outbound" style="background:rgba(245,158,11,0.25); color:#fde047; border:1px solid rgba(245,158,11,0.5); font-weight:700;" title="Fork: bifurca en ${blockedByThis.length} ramas posteriores">🌿 Fork (${blockedByThis.length})</span>` : (blockedByThis.length === 1 ? `<span class="git-badge-outbound" title="Bloquea a 1 tarea">➡ 1</span>` : '')}
+                ${isCritical ? `<span class="git-badge-bottleneck" title="Cuello de botella: bloquea a ${blockedByThis.length} tareas">⚡ ${blockedByThis.length}</span>` : ''}
+              </div>
             </div>
           </div>
         `;
-      }).join('');
+      });
+
+      nodesLayer.innerHTML = nodesHTML;
+
+      if (statsEl) {
+        statsEl.innerHTML = `
+          <span><strong>${activeTasks.length}</strong> tareas</span>
+          <span>•</span>
+          <span><strong>${totalEdges}</strong> uniones (${activeBlockedEdges} bloqueantes)</span>
+        `;
+      }
+
+      updateGitGraphZoomUI();
     }
 
     /* ==========================================================================
@@ -4829,6 +5805,14 @@
     window.clearAllData = clearAllData;
     window.restoreDemoData = restoreDemoData;
     window.clearAllFilters = clearAllFilters;
+    window.setDependenciesViewMode = setDependenciesViewMode;
+    window.adjustGitGraphZoom = adjustGitGraphZoom;
+    window.resetGitGraphZoom = resetGitGraphZoom;
+    window.toggleBottleneckHighlight = toggleBottleneckHighlight;
+    window.selectGitNode = selectGitNode;
+    window.closeGitNodeQuickPanel = closeGitNodeQuickPanel;
+    window.highlightNodeConnections = highlightNodeConnections;
+    window.clearNodeHighlight = clearNodeHighlight;
     window.initApp = initApp;
 
     // Arrancar la aplicación al cargar el DOM o inmediatamente si ya está listo
