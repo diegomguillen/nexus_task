@@ -4,9 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PrjManager Pro - Gestión de Proyectos, Tareas y Reuniones</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M8 8v10a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V12' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M8 15c2.5-2.8 5.5-3.5 12-3.5' stroke='%2338bdf8' stroke-width='2' stroke-dasharray='2 2' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='8' cy='8' r='2.8' fill='%23ffffff'/%3E%3Ccircle cx='20' cy='11.5' r='2.8' fill='%2338bdf8' stroke='%23ffffff' stroke-width='1.2'/%3E%3Ccircle cx='16' cy='22' r='2.8' fill='%2310b981' stroke='%23ffffff' stroke-width='1.2'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    /* Restaurar inmediatamente el último tema seleccionado antes de renderizar */
+    (function() {
+      try {
+        var t = localStorage.getItem('prj_manager_theme');
+        if (!t) {
+          var d = localStorage.getItem('prj_manager_pro_data');
+          if (d) { var p = JSON.parse(d); if (p && p.settings) t = p.settings.theme; }
+        }
+        if (t === 'light') {
+          document.documentElement.classList.add('light-theme');
+        } else {
+          document.documentElement.classList.remove('light-theme');
+        }
+      } catch(e) {}
+    })();
+  </script>
   <style>
     /* ==========================================================================
        VARIABLES Y TEMA (DARK / LIGHT MODERN SYSTEM)
@@ -150,17 +168,22 @@
     }
 
     .brand-logo {
-      width: 38px;
-      height: 38px;
+      width: 40px;
+      height: 40px;
       border-radius: var(--radius-md);
-      background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
+      background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
-      font-weight: 800;
-      font-size: 1.25rem;
-      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
+      flex-shrink: 0;
+      overflow: hidden;
+      padding: 6px;
+    }
+    .brand-logo svg {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
     .brand-name {
@@ -255,6 +278,24 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+    }
+
+    .sidebar-attribution {
+      padding: 8px 14px 12px 14px;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      letter-spacing: 0.02em;
+      user-select: none;
+      line-height: 1.3;
+    }
+    body.light-theme .sidebar-attribution {
+      border-top-color: rgba(0, 0, 0, 0.06);
+    }
+    .sidebar-attribution strong {
+      color: var(--text-muted);
+      font-weight: 600;
     }
 
     /* MAIN CONTENT AREA */
@@ -1305,6 +1346,191 @@
     }
 
     /* ==========================================================================
+       4.1 VISTA GRAFO DE TRAZABILIDAD Y ORIGEN (PROYECTOS ➔ REUNIONES ➔ TAREAS)
+       ========================================================================== */
+    .lineage-graph-wrapper {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .lineage-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      flex-wrap: wrap;
+    }
+
+    .lineage-toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .lineage-viewport {
+      position: relative;
+      flex: 1;
+      min-height: 520px;
+      max-height: calc(100vh - 280px);
+      overflow: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background-color: #080c14;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+      background-size: 24px 24px;
+      cursor: grab;
+      user-select: none;
+    }
+
+    body.light-theme .lineage-viewport {
+      background-color: #f1f5f9;
+      background-image: radial-gradient(rgba(0, 0, 0, 0.09) 1.2px, transparent 1.2px);
+    }
+
+    .lineage-viewport.is-dragging {
+      cursor: grabbing;
+    }
+
+    .lineage-canvas {
+      position: relative;
+      transform-origin: top left;
+      transition: transform 0.12s ease-out;
+    }
+
+    .lineage-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    .lineage-nodes-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .lineage-edge {
+      fill: none;
+      stroke: #475569;
+      stroke-width: 2.2;
+      transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+      cursor: pointer;
+    }
+
+    .lineage-edge.highlighted {
+      stroke-width: 4 !important;
+      opacity: 1 !important;
+      filter: drop-shadow(0 0 8px currentColor);
+      z-index: 10;
+    }
+
+    .lineage-edge.dimmed {
+      opacity: 0.08 !important;
+    }
+
+    .lineage-edge.direct-dash {
+      stroke-dasharray: 6 4;
+    }
+
+    .lineage-card {
+      position: absolute;
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .lineage-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      border-color: var(--primary);
+    }
+
+    .lineage-card.highlighted {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.45) !important;
+    }
+
+    .lineage-card.selected {
+      border-color: #818cf8 !important;
+      box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.35), 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    .lineage-card.dimmed {
+      opacity: 0.18;
+      filter: grayscale(0.5);
+    }
+
+    .lineage-card-project {
+      width: 270px;
+      height: 94px;
+    }
+
+    .lineage-card-meeting {
+      width: 320px;
+      height: 108px;
+    }
+
+    .lineage-card-task {
+      width: 320px;
+      height: 88px;
+    }
+
+    .lineage-quick-panel {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      max-width: 480px;
+      width: calc(100% - 40px);
+      background: var(--bg-card);
+      border: 1px solid var(--border-focus);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-lg), 0 0 24px rgba(79, 70, 229, 0.25);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: panelSlideUp 0.2s ease-out;
+      backdrop-filter: blur(12px);
+    }
+
+    .lineage-breadcrumb-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 6px 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+    }
+
+    /* ==========================================================================
        5. VISTA CALENDARIO
        ========================================================================== */
     .calendar-container {
@@ -1957,7 +2183,15 @@
     <!-- 1. SIDEBAR DE NAVEGACIÓN -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="brand-logo">P</div>
+        <div class="brand-logo" title="PrjManager PRO">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 8v10a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V12" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 15c2.5-2.8 5.5-3.5 12-3.5" stroke="#38bdf8" stroke-width="2" stroke-dasharray="2 2" stroke-linecap="round"/>
+            <circle cx="8" cy="8" r="3" fill="#ffffff"/>
+            <circle cx="20" cy="11.5" r="3" fill="#38bdf8" stroke="#ffffff" stroke-width="1.2"/>
+            <circle cx="16" cy="22" r="3" fill="#10b981" stroke="#ffffff" stroke-width="1.2"/>
+          </svg>
+        </div>
         <div class="brand-info">
           <div class="brand-name">PrjManager <span class="brand-tag">PRO</span></div>
         </div>
@@ -1999,6 +2233,11 @@
           <span>Proyectos</span>
           <span class="nav-badge" id="badge-projects-count">0</span>
         </div>
+        <div class="nav-item" data-view="lineage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span>Trazabilidad / Origen</span>
+          <span class="nav-badge" id="badge-lineage-count">0</span>
+        </div>
         <div class="nav-item" data-view="dashboard">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
           <span>Dashboard & Métricas</span>
@@ -2022,6 +2261,10 @@
         <button class="btn-icon" id="btn-reset-demo" title="Restaurar / Cargar datos de ejemplo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
         </button>
+      </div>
+
+      <div class="sidebar-attribution">
+        <span>Designed by <strong>Diego M.Guillén</strong></span>
       </div>
     </aside>
 
@@ -2289,6 +2532,78 @@
         </div>
         <div class="meetings-grid" id="projects-grid-container">
           <!-- Tarjetas de proyectos -->
+        </div>
+      </section>
+
+      <!-- VISTA 7.5: GRAFO DE TRAZABILIDAD Y ORIGEN (PROYECTOS ➔ REUNIONES ➔ TAREAS) -->
+      <section class="view-content" id="view-lineage">
+        <div class="lineage-graph-wrapper">
+          <!-- BARRA DE HERRAMIENTAS Y FILTROS -->
+          <div class="lineage-toolbar">
+            <div class="lineage-toolbar-group">
+              <span style="font-weight:700; font-size:0.85rem; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                <span>Linaje de Origen</span>
+              </span>
+
+              <select class="filter-select" id="lineage-project-filter" onchange="renderLineageView()" style="min-width:180px;">
+                <option value="all">Todos los Proyectos</option>
+              </select>
+
+              <select class="filter-select" id="lineage-origin-filter" onchange="renderLineageView()" style="min-width:180px;">
+                <option value="all">Todos los orígenes de tareas</option>
+                <option value="from_meeting">Nacidas en Reunión / Acta</option>
+                <option value="direct_project">Planificadas directo en Proyecto</option>
+                <option value="transversal">Transversales (Sin Proyecto)</option>
+              </select>
+            </div>
+
+            <div class="lineage-toolbar-group">
+              <div class="git-zoom-controls">
+                <button type="button" class="btn-icon-small" onclick="adjustLineageZoom(-0.15)" title="Reducir zoom">-</button>
+                <span id="lineage-zoom-label" style="font-family:var(--font-mono); font-size:0.72rem; min-width:38px; text-align:center;">100%</span>
+                <button type="button" class="btn-icon-small" onclick="adjustLineageZoom(0.15)" title="Aumentar zoom">+</button>
+                <button type="button" class="btn-icon-small" onclick="resetLineageZoom()" title="Restablecer escala 100%">↺</button>
+              </div>
+              <span id="lineage-stats" style="font-size:0.75rem; color:var(--text-dim);"></span>
+            </div>
+          </div>
+
+          <!-- LEYENDA Y GUÍA DE NAVEGACIÓN -->
+          <div class="graph-legend">
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:#4f46e5;"></span>
+              <span>1. Proyectos (Entidad Raíz)</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:#06b6d4;"></span>
+              <span>2. Reuniones y Actas (Espacio de decisión)</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:#10b981;"></span>
+              <span>3. Tareas / Compromisos acordados</span>
+            </div>
+            <div class="graph-legend-item">
+              <span style="display:inline-block; width:18px; border-top:2px dashed #94a3b8; margin-right:4px;"></span>
+              <span>Origen directo (sin reunión previa)</span>
+            </div>
+            <div class="graph-legend-item" style="color:var(--text-muted); font-size:0.74rem; margin-left:auto;">
+              <span>💡 Pasa el ratón sobre cualquier tarjeta para resaltar su procedencia exacta • Clic para ver linaje • Doble clic para editar</span>
+            </div>
+          </div>
+
+          <!-- VIEWPORT INTERACTIVO (ZOOM, PAN, SVG + TARJETAS) -->
+          <div id="lineage-viewport" class="lineage-viewport">
+            <div id="lineage-canvas" class="lineage-canvas">
+              <svg id="lineage-svg" class="lineage-svg"></svg>
+              <div id="lineage-nodes-layer" class="lineage-nodes-layer"></div>
+            </div>
+
+            <!-- PANEL RÁPIDO DE INSPECCIÓN DE PROCEDENCIA / LINAJE -->
+            <div id="lineage-quick-panel" class="lineage-quick-panel" style="display:none;">
+              <!-- Se rellena dinámicamente al seleccionar o hacer clic en un elemento -->
+            </div>
+          </div>
         </div>
       </section>
 
@@ -2885,7 +3200,8 @@
     function initApp() {
       try {
         loadData();
-        applyTheme((appData.settings && appData.settings.theme) || 'dark');
+        const savedTheme = localStorage.getItem('prj_manager_theme') || (appData.settings && appData.settings.theme) || 'dark';
+        applyTheme(savedTheme);
         bindGlobalEvents();
         populateFilterSelectors();
         updateAllViewCounts();
@@ -2900,6 +3216,8 @@
     function loadData() {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
+        const lastSelectedTheme = localStorage.getItem('prj_manager_theme') || 'dark';
+
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && typeof parsed === 'object') {
@@ -2908,8 +3226,9 @@
               tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
               meetings: Array.isArray(parsed.meetings) ? parsed.meetings : [],
               members: Array.isArray(parsed.members) ? parsed.members : [],
-              settings: (parsed.settings && typeof parsed.settings === 'object') ? parsed.settings : { theme: 'dark' }
+              settings: (parsed.settings && typeof parsed.settings === 'object') ? parsed.settings : { theme: lastSelectedTheme }
             };
+            if (!appData.settings.theme) appData.settings.theme = lastSelectedTheme;
             
             // Asegurar que todos los proyectos tienen status
             (appData.projects || []).forEach(p => {
@@ -3224,6 +3543,7 @@
         table: { t: 'Lista Detallada', s: 'Visualización tabular para búsqueda y filtrado rápido' },
         meetings: { t: 'Reuniones y Actas', s: 'Registro de actas, notas rápidas y compromisos de proyecto' },
         projects: { t: 'Proyectos Activos', s: 'Visión general de cartera de proyectos, salud y avance' },
+        lineage: { t: 'Grafo de Trazabilidad y Origen', s: 'Linaje y procedencia de compromisos: Proyectos ➔ Reuniones donde se acordaron ➔ Tareas ejecutadas' },
         dashboard: { t: 'Dashboard & Métricas', s: 'Gráficos de carga de trabajo, estados y compromisos' }
       };
 
@@ -3244,6 +3564,7 @@
       else if (activeView === 'table') renderTableView();
       else if (activeView === 'meetings') renderMeetingsView();
       else if (activeView === 'projects') renderProjectsView();
+      else if (activeView === 'lineage') renderLineageView();
       else if (activeView === 'dashboard') renderDashboardCharts();
     }
 
@@ -4593,6 +4914,856 @@
     }
 
     /* ==========================================================================
+       RENDERIZADO: 7.5 GRAFO DE TRAZABILIDAD Y ORIGEN (PROYECTOS ➔ REUNIONES ➔ TAREAS)
+       ========================================================================== */
+    let lineageZoom = 1;
+    let lineagePanInitialized = false;
+    let selectedLineageNode = null; // { type: 'project'|'meeting'|'task', id: string }
+
+    function adjustLineageZoom(delta) {
+      lineageZoom = Math.max(0.5, Math.min(1.8, Math.round((lineageZoom + delta) * 100) / 100));
+      updateLineageZoomUI();
+    }
+    window.adjustLineageZoom = adjustLineageZoom;
+
+    function resetLineageZoom() {
+      lineageZoom = 1;
+      updateLineageZoomUI();
+    }
+    window.resetLineageZoom = resetLineageZoom;
+
+    function updateLineageZoomUI() {
+      const canvasEl = document.getElementById('lineage-canvas');
+      const labelEl = document.getElementById('lineage-zoom-label');
+      if (canvasEl) {
+        canvasEl.style.transform = `scale(${lineageZoom})`;
+      }
+      if (labelEl) {
+        labelEl.textContent = `${Math.round(lineageZoom * 100)}%`;
+      }
+    }
+
+    function initLineagePanEvents() {
+      if (lineagePanInitialized) return;
+      const viewport = document.getElementById('lineage-viewport');
+      if (!viewport) return;
+
+      let isDown = false;
+      let startX, startY, scrollLeft, scrollTop;
+
+      viewport.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.lineage-card') || e.target.closest('button') || e.target.closest('select') || e.target.closest('.lineage-quick-panel')) {
+          return;
+        }
+        isDown = true;
+        viewport.classList.add('is-dragging');
+        startX = e.pageX - viewport.offsetLeft;
+        startY = e.pageY - viewport.offsetTop;
+        scrollLeft = viewport.scrollLeft;
+        scrollTop = viewport.scrollTop;
+      });
+
+      viewport.addEventListener('mouseleave', () => {
+        isDown = false;
+        viewport.classList.remove('is-dragging');
+      });
+
+      viewport.addEventListener('mouseup', (e) => {
+        isDown = false;
+        viewport.classList.remove('is-dragging');
+        if (e.target === viewport || e.target.id === 'lineage-svg' || e.target.id === 'lineage-canvas' || e.target.id === 'lineage-nodes-layer') {
+          closeLineageQuickPanel();
+        }
+      });
+
+      viewport.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - viewport.offsetLeft;
+        const y = e.pageY - viewport.offsetTop;
+        viewport.scrollLeft = scrollLeft - (x - startX) * 1.2;
+        viewport.scrollTop = scrollTop - (y - startY) * 1.2;
+      });
+
+      lineagePanInitialized = true;
+    }
+
+    function closeLineageQuickPanel() {
+      selectedLineageNode = null;
+      const panel = document.getElementById('lineage-quick-panel');
+      if (panel) panel.style.display = 'none';
+      clearLineageHighlight(true);
+    }
+    window.closeLineageQuickPanel = closeLineageQuickPanel;
+
+    function formatLineageDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    function highlightLineage(type, id) {
+      if (selectedLineageNode) return; // Si hay uno fijado por clic, no sobreescribir con hover
+      applyLineageHighlight(type, id);
+    }
+
+    function applyLineageHighlight(type, id) {
+      const activePrjIds = new Set();
+      const activeMeetIds = new Set();
+      const activeTaskIds = new Set();
+      const activeEdgeKeys = new Set();
+
+      if (type === 'task') {
+        activeTaskIds.add(id);
+        const task = appData.tasks.find(t => t.id === id);
+        if (task) {
+          if (task.meetingId) {
+            activeMeetIds.add(task.meetingId);
+            activeEdgeKeys.add(`m_${task.meetingId}->t_${task.id}`);
+            const meeting = appData.meetings.find(m => m.id === task.meetingId);
+            if (meeting && meeting.projectIds && meeting.projectIds.length > 0) {
+              meeting.projectIds.forEach(pid => {
+                activePrjIds.add(pid);
+                activeEdgeKeys.add(`p_${pid}->m_${meeting.id}`);
+              });
+            } else if (task.projectId) {
+              activePrjIds.add(task.projectId);
+              activeEdgeKeys.add(`p_${task.projectId}->m_${meeting.id}`);
+            } else {
+              activePrjIds.add('prj-transversal');
+              activeEdgeKeys.add(`p_prj-transversal->m_${meeting.id}`);
+            }
+          } else if (task.projectId) {
+            activePrjIds.add(task.projectId);
+            activeEdgeKeys.add(`p_${task.projectId}->t_${task.id}`);
+          } else {
+            activePrjIds.add('prj-transversal');
+            activeEdgeKeys.add(`p_prj-transversal->t_${task.id}`);
+          }
+        }
+      } else if (type === 'meeting') {
+        activeMeetIds.add(id);
+        const meeting = appData.meetings.find(m => m.id === id);
+        if (meeting) {
+          if (meeting.projectIds && meeting.projectIds.length > 0) {
+            meeting.projectIds.forEach(pid => {
+              activePrjIds.add(pid);
+              activeEdgeKeys.add(`p_${pid}->m_${meeting.id}`);
+            });
+          } else {
+            activePrjIds.add('prj-transversal');
+            activeEdgeKeys.add(`p_prj-transversal->m_${meeting.id}`);
+          }
+
+          // Tareas originadas en esta reunión
+          appData.tasks.forEach(t => {
+            if (t.meetingId === meeting.id || (meeting.actionItemIds && meeting.actionItemIds.includes(t.id))) {
+              activeTaskIds.add(t.id);
+              activeEdgeKeys.add(`m_${meeting.id}->t_${t.id}`);
+            }
+          });
+        }
+      } else if (type === 'project') {
+        activePrjIds.add(id);
+        if (id === 'prj-transversal') {
+          appData.meetings.forEach(m => {
+            if (!m.projectIds || m.projectIds.length === 0) {
+              activeMeetIds.add(m.id);
+              activeEdgeKeys.add(`p_prj-transversal->m_${m.id}`);
+            }
+          });
+          appData.tasks.forEach(t => {
+            if (!t.projectId) {
+              activeTaskIds.add(t.id);
+              if (t.meetingId) {
+                activeMeetIds.add(t.meetingId);
+                activeEdgeKeys.add(`m_${t.meetingId}->t_${t.id}`);
+              } else {
+                activeEdgeKeys.add(`p_prj-transversal->t_${t.id}`);
+              }
+            }
+          });
+        } else {
+          appData.meetings.forEach(m => {
+            if (m.projectIds && m.projectIds.includes(id)) {
+              activeMeetIds.add(m.id);
+              activeEdgeKeys.add(`p_${id}->m_${m.id}`);
+            }
+          });
+          appData.tasks.forEach(t => {
+            if (t.projectId === id) {
+              activeTaskIds.add(t.id);
+              if (t.meetingId) {
+                activeMeetIds.add(t.meetingId);
+                activeEdgeKeys.add(`m_${t.meetingId}->t_${t.id}`);
+                activeEdgeKeys.add(`p_${id}->m_${t.meetingId}`);
+              } else {
+                activeEdgeKeys.add(`p_${id}->t_${t.id}`);
+              }
+            }
+          });
+        }
+      }
+
+      // Aplicar clases en DOM
+      document.querySelectorAll('.lineage-card').forEach(el => {
+        const cType = el.dataset.nodeType;
+        const cId = el.dataset.nodeId;
+        let isMatch = false;
+        if (cType === 'project' && activePrjIds.has(cId)) isMatch = true;
+        else if (cType === 'meeting' && activeMeetIds.has(cId)) isMatch = true;
+        else if (cType === 'task' && activeTaskIds.has(cId)) isMatch = true;
+
+        if (isMatch) {
+          el.classList.add('highlighted');
+          el.classList.remove('dimmed');
+        } else {
+          el.classList.remove('highlighted');
+          el.classList.add('dimmed');
+        }
+      });
+
+      document.querySelectorAll('.lineage-edge').forEach(el => {
+        const edgeKey = el.dataset.edgeKey;
+        if (activeEdgeKeys.has(edgeKey)) {
+          el.classList.add('highlighted');
+          el.classList.remove('dimmed');
+        } else {
+          el.classList.remove('highlighted');
+          el.classList.add('dimmed');
+        }
+      });
+    }
+
+    function clearLineageHighlight(force = false) {
+      if (!force && selectedLineageNode) return;
+      document.querySelectorAll('.lineage-card').forEach(el => {
+        el.classList.remove('highlighted', 'dimmed', 'selected');
+      });
+      document.querySelectorAll('.lineage-edge').forEach(el => {
+        el.classList.remove('highlighted', 'dimmed');
+      });
+    }
+
+    function selectLineageNode(type, id) {
+      if (selectedLineageNode && selectedLineageNode.type === type && selectedLineageNode.id === id) {
+        closeLineageQuickPanel();
+        return;
+      }
+
+      selectedLineageNode = { type, id };
+      applyLineageHighlight(type, id);
+
+      // Resaltar la tarjeta seleccionada
+      document.querySelectorAll('.lineage-card').forEach(el => {
+        if (el.dataset.nodeType === type && el.dataset.nodeId === id) {
+          el.classList.add('selected');
+        } else {
+          el.classList.remove('selected');
+        }
+      });
+
+      const panel = document.getElementById('lineage-quick-panel');
+      if (!panel) return;
+
+      let panelHTML = '';
+
+      if (type === 'task') {
+        const task = appData.tasks.find(t => t.id === id);
+        if (!task) return;
+        const project = appData.projects.find(p => p.id === task.projectId);
+        const meeting = appData.meetings.find(m => m.id === task.meetingId);
+
+        const statusLabels = {
+          pendiente: '⏳ Pendiente',
+          en_progreso: '⚡ En Progreso',
+          bloqueada: '⛔ Bloqueada',
+          completada: '✅ Completada',
+          completada_avisos: '⚠️ Completada c/ Avisos'
+        };
+
+        panelHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--primary);">
+                📍 Cadena de Origen y Linaje
+              </span>
+              <h3 style="font-family:var(--font-display); font-size:1.05rem; font-weight:700; margin:2px 0 0 0;">
+                [${escapeHTML(task.code)}] ${escapeHTML(task.title)}
+              </h3>
+            </div>
+            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" style="padding:4px 8px;" title="Cerrar panel">✕</button>
+          </div>
+
+          <!-- LINAJE EN CADENA -->
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+            <div class="lineage-breadcrumb-step">
+              <span style="font-size:1rem;">🏢</span>
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">1. PROYECTO RAÍZ</div>
+                <div style="font-weight:600; color:${project ? project.color : 'var(--text-main)'};">
+                  ${project ? `[${escapeHTML(project.code)}] ${escapeHTML(project.name)}` : '🌐 Transversal (Sin proyecto específico)'}
+                </div>
+              </div>
+            </div>
+
+            <div class="lineage-breadcrumb-step" style="border-left:3px solid ${meeting ? 'var(--info)' : 'var(--border-focus)'};">
+              <span style="font-size:1rem;">${meeting ? '🤝' : '📌'}</span>
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">2. PROCEDENCIA / REUNIÓN</div>
+                <div style="font-weight:600; color:var(--text-main);">
+                  ${meeting ? `${escapeHTML(meeting.title)} <span style="font-size:0.72rem; color:var(--text-muted);">(${formatLineageDate(meeting.date)})</span>` : 'Planificada directamente en proyecto (sin acta de reunión)'}
+                </div>
+                ${meeting && meeting.attendees ? `<div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Asistentes del acuerdo: ${meeting.attendees.map(a => escapeHTML(a)).join(', ')}</div>` : ''}
+              </div>
+            </div>
+
+            <div class="lineage-breadcrumb-step" style="border-left:3px solid var(--success);">
+              <span style="font-size:1rem;">✅</span>
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">3. COMPROMISO ASIGNADO</div>
+                <div style="font-size:0.8rem; color:var(--text-main);">
+                  Responsable: <strong>@${escapeHTML(task.assignedTo || 'Sin asignar')}</strong> • Estado: <strong>${statusLabels[task.status] || task.status}</strong>
+                </div>
+                ${task.description ? `<div style="font-size:0.74rem; color:var(--text-muted); margin-top:3px; max-height:48px; overflow-y:auto;">${escapeHTML(task.description)}</div>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
+            ${meeting ? `<button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:5px 12px;" onclick="openEditMeetingModal('${meeting.id}')">📄 Ver Acta de Reunión</button>` : ''}
+            <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:5px 12px;" onclick="openEditTaskModal('${task.id}')">✏️ Editar Tarea</button>
+          </div>
+        `;
+      } else if (type === 'meeting') {
+        const meeting = appData.meetings.find(m => m.id === id);
+        if (!meeting) return;
+        const associatedProjects = (meeting.projectIds || []).map(pid => appData.projects.find(p => p.id === pid)).filter(Boolean);
+        const actionTasks = appData.tasks.filter(t => t.meetingId === meeting.id || (meeting.actionItemIds && meeting.actionItemIds.includes(t.id)));
+
+        panelHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--info);">
+                🤝 Reunión y Compromisos N酸idos
+              </span>
+              <h3 style="font-family:var(--font-display); font-size:1.05rem; font-weight:700; margin:2px 0 0 0;">
+                ${escapeHTML(meeting.title)}
+              </h3>
+              <div style="font-size:0.75rem; color:var(--text-dim); margin-top:2px;">
+                📅 ${formatLineageDate(meeting.date)} • 📍 ${escapeHTML(meeting.location || 'Sin sala')}
+              </div>
+            </div>
+            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" style="padding:4px 8px;" title="Cerrar panel">✕</button>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+            <div class="lineage-breadcrumb-step">
+              <span style="font-size:1rem;">🏢</span>
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">PROYECTOS VINCULADOS (${associatedProjects.length})</div>
+                <div style="font-weight:600; font-size:0.78rem;">
+                  ${associatedProjects.length > 0 ? associatedProjects.map(p => `<span class="badge" style="background:${p.color}22; color:${p.color}; border:1px solid ${p.color}44; margin-right:4px;">${escapeHTML(p.name)}</span>`).join('') : '<span style="color:var(--text-muted);">Reunión General / Transversal</span>'}
+                </div>
+              </div>
+            </div>
+
+            <div class="lineage-breadcrumb-step">
+              <span style="font-size:1rem;">📋</span>
+              <div style="flex:1;">
+                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">TAREAS / COMPROMISOS ACORDADOS EN ESTA REUNIÓN (${actionTasks.length})</div>
+                ${actionTasks.length > 0 ? `
+                  <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px; max-height:80px; overflow-y:auto;">
+                    ${actionTasks.map(t => `
+                      <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:3px 6px; border-radius:4px; font-size:0.75rem;">
+                        <span><strong>[${escapeHTML(t.code)}]</strong> ${escapeHTML(t.title)}</span>
+                        <span style="color:var(--text-dim);">@${escapeHTML(t.assignedTo || '-')}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">No se registraron tareas directas en el acta.</div>`}
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
+            <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:5px 12px;" onclick="openEditMeetingModal('${meeting.id}')">✏️ Editar Reunión y Acta</button>
+          </div>
+        `;
+      } else if (type === 'project') {
+        const isTransversal = id === 'prj-transversal';
+        const project = isTransversal ? null : appData.projects.find(p => p.id === id);
+        const projectMeetings = isTransversal 
+          ? appData.meetings.filter(m => !m.projectIds || m.projectIds.length === 0)
+          : appData.meetings.filter(m => m.projectIds && m.projectIds.includes(id));
+        const projectTasks = isTransversal
+          ? appData.tasks.filter(t => !t.projectId)
+          : appData.tasks.filter(t => t.projectId === id);
+
+        panelHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:${project ? project.color : 'var(--primary)'};">
+                🏢 Raíz de Cartera de Proyecto
+              </span>
+              <h3 style="font-family:var(--font-display); font-size:1.05rem; font-weight:700; margin:2px 0 0 0;">
+                ${project ? `[${escapeHTML(project.code)}] ${escapeHTML(project.name)}` : 'Tareas y Reuniones Generales'}
+              </h3>
+            </div>
+            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" style="padding:4px 8px;" title="Cerrar panel">✕</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
+            <div class="lineage-breadcrumb-step">
+              <span style="font-size:1.2rem;">🤝</span>
+              <div>
+                <div style="font-size:0.68rem; color:var(--text-dim); font-weight:700;">REUNIONES</div>
+                <div style="font-size:1rem; font-weight:700;">${projectMeetings.length} celebradas</div>
+              </div>
+            </div>
+            <div class="lineage-breadcrumb-step">
+              <span style="font-size:1.2rem;">📌</span>
+              <div>
+                <div style="font-size:0.68rem; color:var(--text-dim); font-weight:700;">TAREAS ACTIVAS</div>
+                <div style="font-size:1rem; font-weight:700;">${projectTasks.length} registradas</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
+            ${project ? `<button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:5px 12px;" onclick="openEditProjectModal('${project.id}')">✏️ Editar Ficha de Proyecto</button>` : ''}
+          </div>
+        `;
+      }
+
+      panel.innerHTML = panelHTML;
+      panel.style.display = 'flex';
+    }
+    window.selectLineageNode = selectLineageNode;
+
+    function renderLineageView() {
+      const viewport = document.getElementById('lineage-viewport');
+      const canvas = document.getElementById('lineage-canvas');
+      const svg = document.getElementById('lineage-svg');
+      const nodesLayer = document.getElementById('lineage-nodes-layer');
+      const statsEl = document.getElementById('lineage-stats');
+      const projectFilterEl = document.getElementById('lineage-project-filter');
+      const originFilterEl = document.getElementById('lineage-origin-filter');
+
+      if (!viewport || !canvas || !svg || !nodesLayer) return;
+
+      initLineagePanEvents();
+      updateLineageZoomUI();
+
+      // Sincronizar selector de proyectos
+      if (projectFilterEl) {
+        const curVal = projectFilterEl.value || 'all';
+        const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
+        projectFilterEl.innerHTML = `
+          <option value="all">Todos los Proyectos</option>
+          <option value="none">Transversales (Sin Proyecto)</option>
+          ${activeProjects.map(p => `<option value="${p.id}">● ${escapeHTML(p.name)}</option>`).join('')}
+        `;
+        projectFilterEl.value = curVal;
+      }
+
+      const selectedPrjId = projectFilterEl ? projectFilterEl.value : 'all';
+      const selectedOrigin = originFilterEl ? originFilterEl.value : 'all';
+
+      // 1. Filtrar proyectos a mostrar
+      let projectsToShow = [];
+      const hasTransversalTasksOrMeetings = appData.tasks.some(t => !t.projectId) || appData.meetings.some(m => !m.projectIds || m.projectIds.length === 0);
+
+      if (selectedPrjId === 'all') {
+        projectsToShow = appData.projects.filter(p => isProjectActive(p.id));
+        if (hasTransversalTasksOrMeetings) {
+          projectsToShow.push({
+            id: 'prj-transversal',
+            code: 'GENERAL',
+            name: 'Transversal / Sin Proyecto',
+            color: '#64748b',
+            description: 'Actas y tareas que no pertenecen a ningún proyecto cerrado.',
+            status: 'en_curso'
+          });
+        }
+      } else if (selectedPrjId === 'none') {
+        projectsToShow = [{
+          id: 'prj-transversal',
+          code: 'GENERAL',
+          name: 'Transversal / Sin Proyecto',
+          color: '#64748b',
+          description: 'Actas y tareas que no pertenecen a ningún proyecto cerrado.',
+          status: 'en_curso'
+        }];
+      } else {
+        const prj = appData.projects.find(p => p.id === selectedPrjId);
+        if (prj) projectsToShow = [prj];
+      }
+
+      // 2. Filtrar reuniones a mostrar
+      let meetingsToShow = appData.meetings.filter(m => {
+        if (!isMeetingActive(m)) return false;
+
+        if (selectedPrjId !== 'all') {
+          if (selectedPrjId === 'none') {
+            if (m.projectIds && m.projectIds.length > 0) return false;
+          } else {
+            if (!m.projectIds || !m.projectIds.includes(selectedPrjId)) return false;
+          }
+        }
+
+        if (selectedOrigin === 'direct_project') return false; // Solo directas
+        return true;
+      });
+
+      // 3. Filtrar tareas a mostrar
+      let tasksToShow = appData.tasks.filter(t => {
+        if (!isProjectActive(t.projectId)) return false;
+
+        if (selectedPrjId !== 'all') {
+          if (selectedPrjId === 'none') {
+            if (t.projectId) return false;
+          } else {
+            if (t.projectId !== selectedPrjId) return false;
+          }
+        }
+
+        if (selectedOrigin === 'from_meeting') {
+          if (!t.meetingId) return false;
+        } else if (selectedOrigin === 'direct_project') {
+          if (t.meetingId || !t.projectId) return false;
+        } else if (selectedOrigin === 'transversal') {
+          if (t.projectId) return false;
+        }
+
+        return true;
+      });
+
+      if (statsEl) {
+        statsEl.textContent = `${projectsToShow.length} Proyectos • ${meetingsToShow.length} Reuniones • ${tasksToShow.length} Tareas trazadas`;
+      }
+
+      // Manejo de estado vacío
+      if (projectsToShow.length === 0 && meetingsToShow.length === 0 && tasksToShow.length === 0) {
+        svg.innerHTML = '';
+        nodesLayer.innerHTML = `
+          <div style="padding:60px 20px; text-align:center; width:600px; margin:40px auto; background:var(--bg-surface); border:1px dashed var(--border-subtle); border-radius:var(--radius-lg);">
+            <div style="font-size:2rem; margin-bottom:8px;">🔍</div>
+            <div style="font-size:1.1rem; font-weight:700; color:var(--text-main);">No hay elementos coincidentes con el filtro de linaje</div>
+            <div style="font-size:0.85rem; color:var(--text-dim); margin-top:4px;">Cambia los filtros o añade nuevas tareas y reuniones vinculadas.</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Layout y Posicionamiento de las 3 Columnas
+      const CARD_PROJECT_W = 280;
+      const CARD_PROJECT_H = 94;
+      const CARD_MEETING_W = 320;
+      const CARD_MEETING_H = 108;
+      const CARD_TASK_W = 320;
+      const CARD_TASK_H = 88;
+
+      const TIER1_X = 60;
+      const TIER2_X = 490;
+      const TIER3_X = 960;
+      const START_Y = 64;
+
+      const GAP_PROJECTS = 32;
+      const GAP_MEETINGS = 28;
+      const GAP_TASKS = 22;
+
+      // Calcular posiciones de cada tarjeta
+      const projectCoords = new Map();
+      projectsToShow.forEach((p, idx) => {
+        projectCoords.set(p.id, {
+          x: TIER1_X,
+          y: START_Y + idx * (CARD_PROJECT_H + GAP_PROJECTS),
+          w: CARD_PROJECT_W,
+          h: CARD_PROJECT_H
+        });
+      });
+
+      const meetingCoords = new Map();
+      meetingsToShow.forEach((m, idx) => {
+        meetingCoords.set(m.id, {
+          x: TIER2_X,
+          y: START_Y + idx * (CARD_MEETING_H + GAP_MEETINGS),
+          w: CARD_MEETING_W,
+          h: CARD_MEETING_H
+        });
+      });
+
+      const taskCoords = new Map();
+      tasksToShow.forEach((t, idx) => {
+        taskCoords.set(t.id, {
+          x: TIER3_X,
+          y: START_Y + idx * (CARD_TASK_H + GAP_TASKS),
+          w: CARD_TASK_W,
+          h: CARD_TASK_H
+        });
+      });
+
+      // Calcular dimensiones totales del lienzo
+      const maxProjectY = START_Y + projectsToShow.length * (CARD_PROJECT_H + GAP_PROJECTS);
+      const maxMeetingY = START_Y + meetingsToShow.length * (CARD_MEETING_H + GAP_MEETINGS);
+      const maxTaskY = START_Y + tasksToShow.length * (CARD_TASK_H + GAP_TASKS);
+      const totalCanvasHeight = Math.max(maxProjectY, maxMeetingY, maxTaskY, 560) + 60;
+      const totalCanvasWidth = TIER3_X + CARD_TASK_W + 100;
+
+      canvas.style.width = `${totalCanvasWidth}px`;
+      canvas.style.height = `${totalCanvasHeight}px`;
+      svg.setAttribute('width', totalCanvasWidth);
+      svg.setAttribute('height', totalCanvasHeight);
+      svg.style.width = `${totalCanvasWidth}px`;
+      svg.style.height = `${totalCanvasHeight}px`;
+
+      // 4. GENERAR RUTAS SVG (CURVAS BEZIER DE LINAJE)
+      let svgContent = `
+        <defs>
+          <linearGradient id="lineageGradientPtoM" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.8" />
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.8" />
+          </linearGradient>
+          <linearGradient id="lineageGradientMtoT" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.8" />
+            <stop offset="100%" stop-color="#10b981" stop-opacity="0.8" />
+          </linearGradient>
+        </defs>
+      `;
+
+      // Encabezados de columnas visuales en SVG/Canvas
+      let headersHTML = `
+        <div style="position:absolute; top:18px; left:${TIER1_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#4f46e5;"></span>
+          1. Proyectos (Entidad Raíz)
+        </div>
+        <div style="position:absolute; top:18px; left:${TIER2_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#06b6d4;"></span>
+          2. Reuniones y Actas (Espacio de decisión)
+        </div>
+        <div style="position:absolute; top:18px; left:${TIER3_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+          3. Tareas y Compromisos (Ejecución)
+        </div>
+      `;
+
+      // A) Conexiones Proyecto ➔ Reunión
+      meetingsToShow.forEach(m => {
+        const mPos = meetingCoords.get(m.id);
+        if (!mPos) return;
+
+        const pIds = (m.projectIds && m.projectIds.length > 0) ? m.projectIds : ['prj-transversal'];
+        pIds.forEach(pid => {
+          const pPos = projectCoords.get(pid);
+          if (!pPos) return;
+
+          const startX = pPos.x + pPos.w;
+          const startY = pPos.y + pPos.h / 2;
+          const endX = mPos.x;
+          const endY = mPos.y + mPos.h / 2;
+          const dx = (endX - startX) * 0.5;
+
+          const prjObj = appData.projects.find(p => p.id === pid);
+          const strokeColor = prjObj ? prjObj.color : '#64748b';
+
+          svgContent += `
+            <path class="lineage-edge"
+                  data-edge-key="p_${pid}->m_${m.id}"
+                  d="M ${startX} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX} ${endY}"
+                  stroke="${strokeColor}"
+                  stroke-opacity="0.5" />
+          `;
+        });
+      });
+
+      // B) Conexiones Reunión ➔ Tarea
+      tasksToShow.forEach(t => {
+        const tPos = taskCoords.get(t.id);
+        if (!tPos) return;
+
+        if (t.meetingId && meetingCoords.has(t.meetingId)) {
+          const mPos = meetingCoords.get(t.meetingId);
+          const startX = mPos.x + mPos.w;
+          const startY = mPos.y + mPos.h / 2;
+          const endX = tPos.x;
+          const endY = tPos.y + tPos.h / 2;
+          const dx = (endX - startX) * 0.5;
+
+          svgContent += `
+            <path class="lineage-edge"
+                  data-edge-key="m_${t.meetingId}->t_${t.id}"
+                  d="M ${startX} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX} ${endY}"
+                  stroke="#06b6d4"
+                  stroke-opacity="0.55" />
+          `;
+        } else {
+          // Conexión DIRECTA Proyecto ➔ Tarea (sin pasar por reunión)
+          const pId = t.projectId || 'prj-transversal';
+          if (projectCoords.has(pId)) {
+            const pPos = projectCoords.get(pId);
+            const startX = pPos.x + pPos.w;
+            const startY = pPos.y + pPos.h / 2;
+            const endX = tPos.x;
+            const endY = tPos.y + tPos.h / 2;
+            const dx = (endX - startX) * 0.45;
+
+            const prjObj = appData.projects.find(p => p.id === pId);
+            const strokeColor = prjObj ? prjObj.color : '#94a3b8';
+
+            svgContent += `
+              <path class="lineage-edge direct-dash"
+                    data-edge-key="p_${pId}->t_${t.id}"
+                    d="M ${startX} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX} ${endY}"
+                    stroke="${strokeColor}"
+                    stroke-opacity="0.4" />
+            `;
+          }
+        }
+      });
+
+      svg.innerHTML = svgContent;
+
+      // 5. GENERAR TARJETAS EN NODES LAYER
+      let cardsHTML = headersHTML;
+
+      // A) Tarjetas de Proyectos
+      projectsToShow.forEach(prj => {
+        const pos = projectCoords.get(prj.id);
+        const isTransversal = prj.id === 'prj-transversal';
+        const tasksCount = isTransversal ? appData.tasks.filter(t => !t.projectId).length : appData.tasks.filter(t => t.projectId === prj.id).length;
+        const meetingsCount = isTransversal ? appData.meetings.filter(m => !m.projectIds || m.projectIds.length === 0).length : appData.meetings.filter(m => m.projectIds && m.projectIds.includes(prj.id)).length;
+
+        cardsHTML += `
+          <div class="lineage-card lineage-card-project"
+               id="node-prj-${prj.id}"
+               data-node-type="project"
+               data-node-id="${prj.id}"
+               style="left:${pos.x}px; top:${pos.y}px; border-left:4px solid ${prj.color};"
+               onmouseenter="highlightLineage('project', '${prj.id}')"
+               onmouseleave="clearLineageHighlight()"
+               onclick="selectLineageNode('project', '${prj.id}')"
+               ondblclick="${isTransversal ? '' : `openEditProjectModal('${prj.id}')`}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="badge" style="background:${prj.color}22; color:${prj.color}; border:1px solid ${prj.color}44; font-weight:700;">
+                ${escapeHTML(prj.code)}
+              </span>
+              <span style="font-size:0.72rem; color:var(--text-dim);">
+                ${prj.status === 'cerrado' ? '📁 Cerrado' : '🟢 En curso'}
+              </span>
+            </div>
+            <div style="font-weight:700; font-size:0.86rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;" title="${escapeHTML(prj.name)}">
+              ${escapeHTML(prj.name)}
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:4px;">
+              <span>🤝 ${meetingsCount} Reuniones</span>
+              <span>📌 ${tasksCount} Tareas</span>
+            </div>
+          </div>
+        `;
+      });
+
+      // B) Tarjetas de Reuniones / Actas
+      meetingsToShow.forEach(m => {
+        const pos = meetingCoords.get(m.id);
+        const actionTasks = appData.tasks.filter(t => t.meetingId === m.id || (m.actionItemIds && m.actionItemIds.includes(t.id)));
+        const dateFormatted = formatLineageDate(m.date);
+
+        cardsHTML += `
+          <div class="lineage-card lineage-card-meeting"
+               id="node-meet-${m.id}"
+               data-node-type="meeting"
+               data-node-id="${m.id}"
+               style="left:${pos.x}px; top:${pos.y}px; border-left:4px solid #06b6d4;"
+               onmouseenter="highlightLineage('meeting', '${m.id}')"
+               onmouseleave="clearLineageHighlight()"
+               onclick="selectLineageNode('meeting', '${m.id}')"
+               ondblclick="openEditMeetingModal('${m.id}')">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.72rem; color:var(--info); font-weight:700; display:flex; align-items:center; gap:4px;">
+                <span>🤝 Acta de Reunión</span>
+              </span>
+              <span style="font-size:0.7rem; color:var(--text-dim); font-family:var(--font-mono);">${dateFormatted}</span>
+            </div>
+            <div style="font-weight:700; font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;" title="${escapeHTML(m.title)}">
+              ${escapeHTML(m.title)}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.74rem; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:4px;">
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;" title="${m.attendees ? m.attendees.join(', ') : ''}">
+                👥 ${m.attendees && m.attendees.length > 0 ? m.attendees.map(a => escapeHTML(a)).join(' ') : 'Sin asistentes'}
+              </span>
+              <span class="badge" style="background:rgba(6,182,212,0.15); color:#06b6d4; border:1px solid rgba(6,182,212,0.3); font-weight:700;">
+                ⚡ ${actionTasks.length} compromisos
+              </span>
+            </div>
+          </div>
+        `;
+      });
+
+      // C) Tarjetas de Tareas / Compromisos
+      const priorityColors = {
+        urgente: '#ef4444',
+        alta: '#f59e0b',
+        media: 'var(--primary)',
+        baja: '#64748b'
+      };
+
+      const statusBadges = {
+        completada: { label: 'Completada', color: '#10b981' },
+        completada_avisos: { label: 'Comp. c/ Avisos', color: '#f59e0b' },
+        en_progreso: { label: 'En Progreso', color: 'var(--primary)' },
+        bloqueada: { label: 'Bloqueada', color: '#ec4899' },
+        pendiente: { label: 'Pendiente', color: '#64748b' }
+      };
+
+      tasksToShow.forEach(t => {
+        const pos = taskCoords.get(t.id);
+        const pColor = priorityColors[t.priority] || '#64748b';
+        const st = statusBadges[t.status] || { label: t.status, color: 'var(--text-dim)' };
+        const subCount = t.subtasks ? t.subtasks.length : 0;
+        const subDone = t.subtasks ? t.subtasks.filter(s => s.completed).length : 0;
+
+        cardsHTML += `
+          <div class="lineage-card lineage-card-task"
+               id="node-task-${t.id}"
+               data-node-type="task"
+               data-node-id="${t.id}"
+               style="left:${pos.x}px; top:${pos.y}px; border-left:4px solid ${st.color};"
+               onmouseenter="highlightLineage('task', '${t.id}')"
+               onmouseleave="clearLineageHighlight()"
+               onclick="selectLineageNode('task', '${t.id}')"
+               ondblclick="openEditTaskModal('${t.id}')">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-family:var(--font-mono); font-size:0.75rem; font-weight:700; color:var(--text-main);">
+                ${escapeHTML(t.code)}
+              </span>
+              <span class="badge" style="background:${pColor}22; color:${pColor}; border:1px solid ${pColor}44; font-size:0.65rem; padding:1px 5px;">
+                ${t.priority}
+              </span>
+            </div>
+            <div style="font-weight:600; font-size:0.83rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;" title="${escapeHTML(t.title)}">
+              ${escapeHTML(t.title)}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.73rem; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:4px;">
+              <span>👤 @${escapeHTML(t.assignedTo || 'Sin asignar')}</span>
+              <span style="font-size:0.7rem; font-weight:600; color:${st.color};">
+                ${st.label} ${subCount > 0 ? `(${subDone}/${subCount})` : ''}
+              </span>
+            </div>
+          </div>
+        `;
+      });
+
+      nodesLayer.innerHTML = cardsHTML;
+    }
+    window.renderLineageView = renderLineageView;
+
+    /* ==========================================================================
        RENDERIZADO: 8. DASHBOARD & MÉTRICAS (SVG NATIVO)
        ========================================================================== */
     function renderDashboardCharts() {
@@ -5565,11 +6736,13 @@
       const badgeKanban = document.getElementById('badge-kanban-count');
       const badgeMeetings = document.getElementById('badge-meetings-count');
       const badgeProjects = document.getElementById('badge-projects-count');
+      const badgeLineage = document.getElementById('badge-lineage-count');
       const badgeBlocked = document.getElementById('badge-blocked-count');
 
       if (badgeKanban) badgeKanban.textContent = activeTasks.length;
       if (badgeMeetings) badgeMeetings.textContent = activeMeetings.length;
       if (badgeProjects) badgeProjects.textContent = activeProjects.length;
+      if (badgeLineage) badgeLineage.textContent = activeTasks.length;
       if (badgeBlocked) badgeBlocked.textContent = blockedCount;
     }
 
@@ -5654,12 +6827,13 @@
         renderCalendarView();
       });
 
-      // Modo Claro / Oscuro
+      // Modo Claro / Oscuro (Persistente por defecto)
       document.getElementById('btn-theme-toggle').addEventListener('click', () => {
-        const nextTheme = appData.settings.theme === 'dark' ? 'light' : 'dark';
-        appData.settings.theme = nextTheme;
+        const isCurrentlyLight = document.body.classList.contains('light-theme') || document.documentElement.classList.contains('light-theme');
+        const nextTheme = isCurrentlyLight ? 'dark' : 'light';
         applyTheme(nextTheme);
         saveData();
+        showToast(`Tema cambiado a ${nextTheme === 'light' ? 'Modo Claro' : 'Modo Oscuro'}`, 'info');
       });
 
       // Exportar JSON
@@ -5681,10 +6855,20 @@
     }
 
     function applyTheme(theme) {
-      if (theme === 'light') {
+      const isLight = theme === 'light';
+      if (isLight) {
         document.body.classList.add('light-theme');
+        document.documentElement.classList.add('light-theme');
       } else {
         document.body.classList.remove('light-theme');
+        document.documentElement.classList.remove('light-theme');
+      }
+      try {
+        localStorage.setItem('prj_manager_theme', isLight ? 'light' : 'dark');
+      } catch (e) {}
+      if (appData) {
+        if (!appData.settings) appData.settings = {};
+        appData.settings.theme = isLight ? 'light' : 'dark';
       }
     }
 
