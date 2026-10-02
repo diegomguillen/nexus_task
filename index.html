@@ -1170,6 +1170,7 @@
       pointer-events: auto;
       transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.2s ease;
       box-sizing: border-box;
+      overflow: hidden;
     }
 
     .git-commit-node:hover {
@@ -3477,6 +3478,43 @@
       return { total, done, allDone: total === done };
     }
 
+    function getTaskProgress(task) {
+      if (!task) return { pct: 0, color: '#64748b', hasSubtasks: false, done: 0, total: 0 };
+      const subStats = checkSubtasksCompletion(task);
+      if (subStats.total > 0) {
+        const pct = Math.round((subStats.done / subStats.total) * 100);
+        let color = '#64748b';
+        if (pct === 100) color = '#10b981';
+        else if (pct >= 50) color = 'var(--primary)';
+        else if (pct > 0) color = '#38bdf8';
+        if (task.status === 'bloqueada') color = 'var(--blocked)';
+        return { pct, color, hasSubtasks: true, done: subStats.done, total: subStats.total };
+      }
+
+      let pct = 0;
+      let color = '#64748b';
+      if (task.status === 'completada') {
+        pct = 100;
+        color = '#10b981';
+      } else if (task.status === 'completada_avisos') {
+        pct = 100;
+        color = '#f59e0b';
+      } else if (task.status === 'en_revision') {
+        pct = 75;
+        color = '#a855f7';
+      } else if (task.status === 'en_progreso') {
+        pct = 50;
+        color = 'var(--primary)';
+      } else if (task.status === 'bloqueada') {
+        pct = 0;
+        color = 'var(--blocked)';
+      } else {
+        pct = 0;
+        color = '#64748b';
+      }
+      return { pct, color, hasSubtasks: false, done: 0, total: 0 };
+    }
+
     function promptTaskCompletionWithWarnings(task, onProceed) {
       const stats = checkSubtasksCompletion(task);
       if (stats.allDone) {
@@ -3861,13 +3899,17 @@
         `;
       }
 
+      const progress = getTaskProgress(task);
       const cardClass = `task-card ${blocked ? 'is-blocked' : ''} ${isWarningCompleted ? 'is-warning-completed' : ''}`;
 
       return `
         <div class="${cardClass}" draggable="true" data-task-id="${task.id}" ondragstart="handleDragStart(event, '${task.id}')" onclick="openEditTaskModal('${task.id}')">
           <div class="card-top-meta">
             ${projectBadge}
-            <span class="card-code">${task.code}</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="badge" style="background:${progress.color}20; color:${progress.color}; border:1px solid ${progress.color}45; font-size:0.65rem; font-weight:700; padding:1px 5px;" title="${progress.hasSubtasks ? `Subtareas completadas: ${progress.done}/${progress.total} (${progress.pct}%)` : `Progreso de ejecución: ${progress.pct}%`}">${progress.pct}%</span>
+              <span class="card-code">${task.code}</span>
+            </div>
           </div>
 
           <div class="card-title">${escapeHTML(task.title)}</div>
@@ -4361,12 +4403,16 @@
           const blockers = getBlockersInfo(task);
           const blockedByThis = getTasksBlockedBy(task.id);
           const isCriticalBottleneck = blockedByThis.length >= 2 && task.status !== 'completada';
+          const progress = getTaskProgress(task);
 
           return `
             <div class="dependency-node-card ${isCriticalBottleneck ? 'critical-bottleneck' : ''}">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span class="card-code">${task.code}</span>
-                <span class="badge badge-priority-${task.priority}">${task.priority.toUpperCase()}</span>
+                <div style="display:flex; align-items:center; gap:4px;">
+                  <span class="badge" style="background:${progress.color}20; color:${progress.color}; border:1px solid ${progress.color}45; font-size:0.68rem; font-weight:700; padding:1px 6px;" title="${progress.hasSubtasks ? `Subtareas: ${progress.done}/${progress.total} (${progress.pct}%)` : `Progreso: ${progress.pct}%`}">${progress.pct}%</span>
+                  <span class="badge badge-priority-${task.priority}">${task.priority.toUpperCase()}</span>
+                </div>
               </div>
               <div style="font-weight:700; font-size:0.92rem; color:var(--text-main);">${escapeHTML(task.title)}</div>
 
@@ -4606,6 +4652,7 @@
         const blockers = (task.blockedBy || []).filter(id => taskMap.has(id));
         const blockedByThis = getTasksBlockedBy(task.id);
         const isCritical = blockedByThis.length >= 2 && task.status !== 'completada';
+        const progress = getTaskProgress(task);
 
         let statusDotHTML = '';
         if (task.status === 'completada') {
@@ -4634,6 +4681,7 @@
                 <span>${task.code}</span>
               </div>
               <div style="display:flex; align-items:center; gap:4px;">
+                <span class="badge" style="background:${progress.color}20; color:${progress.color}; border:1px solid ${progress.color}45; font-size:0.62rem; font-weight:700; padding:1px 5px;" title="${progress.hasSubtasks ? `Subtareas completadas: ${progress.done}/${progress.total} (${progress.pct}%)` : `Progreso de ejecución: ${progress.pct}%`}">${progress.pct}%</span>
                 <span class="badge badge-priority-${task.priority}" style="font-size:0.62rem; padding:1px 5px;">${task.priority.slice(0,3).toUpperCase()}</span>
                 <span class="project-tag" style="background:${branchColor}18; color:${branchColor}; border:1px solid ${branchColor}44; font-size:0.62rem; padding:1px 5px;">${escapeHTML(projectName)}</span>
               </div>
@@ -4652,6 +4700,11 @@
                 ${blockedByThis.length > 1 ? `<span class="git-badge-outbound" style="background:rgba(245,158,11,0.25); color:#fde047; border:1px solid rgba(245,158,11,0.5); font-weight:700;" title="Fork: bifurca en ${blockedByThis.length} ramas posteriores">🌿 Fork (${blockedByThis.length})</span>` : (blockedByThis.length === 1 ? `<span class="git-badge-outbound" title="Bloquea a 1 tarea">➡ 1</span>` : '')}
                 ${isCritical ? `<span class="git-badge-bottleneck" title="Cuello de botella: bloquea a ${blockedByThis.length} tareas">⚡ ${blockedByThis.length}</span>` : ''}
               </div>
+            </div>
+
+            <!-- Micro-barra de progreso inferior -->
+            <div style="position:absolute; bottom:0; left:0; width:100%; height:3px; background:rgba(255,255,255,0.06); overflow:hidden;">
+              <div style="width:${progress.pct}%; height:100%; background:${progress.color}; transition:width 0.3s ease;"></div>
             </div>
           </div>
         `;
@@ -5799,6 +5852,8 @@
         const subCount = t.subtasks ? t.subtasks.length : 0;
         const subDone = t.subtasks ? t.subtasks.filter(s => s.completed).length : 0;
 
+        const progress = getTaskProgress(t);
+
         cardsHTML += `
           <div class="lineage-card lineage-card-task"
                id="node-task-${t.id}"
@@ -5813,9 +5868,12 @@
               <span style="font-family:var(--font-mono); font-size:0.75rem; font-weight:700; color:var(--text-main);">
                 ${escapeHTML(t.code)}
               </span>
-              <span class="badge" style="background:${pColor}22; color:${pColor}; border:1px solid ${pColor}44; font-size:0.65rem; padding:1px 5px;">
-                ${t.priority}
-              </span>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <span class="badge" style="background:${progress.color}20; color:${progress.color}; border:1px solid ${progress.color}45; font-size:0.62rem; font-weight:700; padding:1px 5px;" title="${progress.hasSubtasks ? `Subtareas: ${progress.done}/${progress.total} (${progress.pct}%)` : `Progreso: ${progress.pct}%`}">${progress.pct}%</span>
+                <span class="badge" style="background:${pColor}22; color:${pColor}; border:1px solid ${pColor}44; font-size:0.65rem; padding:1px 5px;">
+                  ${t.priority}
+                </span>
+              </div>
             </div>
             <div style="font-weight:600; font-size:0.83rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;" title="${escapeHTML(t.title)}">
               ${escapeHTML(t.title)}
@@ -7503,6 +7561,7 @@
     window.createNewTaskFromCurrentMeeting = createNewTaskFromCurrentMeeting;
     window.syncProjectFilterFromView = syncProjectFilterFromView;
     window.handleLineageOriginChange = handleLineageOriginChange;
+    window.getTaskProgress = getTaskProgress;
     window.openNewMeetingModal = openNewMeetingModal;
     window.openEditMeetingModal = openEditMeetingModal;
     window.openTaskFromMeetingBuffer = openTaskFromMeetingBuffer;
