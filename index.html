@@ -6879,7 +6879,7 @@
       const downloadAnchor = document.createElement('a');
       const dateStr = new Date().toISOString().split('T')[0];
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `prj_manager_backup_${dateStr}.json`);
+      downloadAnchor.setAttribute("download", `nexus_task_${dateStr}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
