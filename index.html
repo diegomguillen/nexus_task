@@ -1,0 +1,4842 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrjManager Pro - Gestión de Proyectos, Tareas y Reuniones</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================================================
+       VARIABLES Y TEMA (DARK / LIGHT MODERN SYSTEM)
+       ========================================================================== */
+    :root {
+      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      /* Paleta Modo Oscuro por Defecto (Sleek Charcoal & Indigo/Emerald) */
+      --bg-base: #0b0f19;
+      --bg-surface: #111827;
+      --bg-card: #182234;
+      --bg-card-hover: #1f2d45;
+      --bg-overlay: rgba(11, 15, 25, 0.75);
+
+      --border-subtle: #24324a;
+      --border-focus: #4f46e5;
+      --border-highlight: #3b82f6;
+
+      --text-main: #f3f4f6;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --text-inverse: #0b0f19;
+
+      /* Acentos de estado */
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: rgba(79, 70, 229, 0.15);
+
+      --success: #10b981;
+      --success-light: rgba(16, 185, 129, 0.15);
+      --success-border: #059669;
+
+      --warning: #f59e0b;
+      --warning-light: rgba(245, 158, 11, 0.15);
+      --warning-border: #d97706;
+
+      --danger: #ef4444;
+      --danger-light: rgba(239, 68, 68, 0.15);
+      --danger-border: #dc2626;
+
+      --info: #0ea5e9;
+      --info-light: rgba(14, 165, 233, 0.15);
+
+      --blocked: #ec4899;
+      --blocked-light: rgba(236, 72, 153, 0.15);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.45);
+      --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.35);
+
+      --sidebar-width: 250px;
+    }
+
+    /* Modo Claro Opcional */
+    body.light-theme {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --bg-overlay: rgba(15, 23, 42, 0.45);
+
+      --border-subtle: #e2e8f0;
+      --border-focus: #4f46e5;
+      --border-highlight: #60a5fa;
+
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --text-inverse: #ffffff;
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+      --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.15);
+    }
+
+    /* Reset básico */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+
+    /* Scrollbar estilizada */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: var(--radius-full); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+    /* ==========================================================================
+       ESTRUCTURA PRINCIPAL DE LA APP
+       ========================================================================== */
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      user-select: none;
+      z-index: 20;
+    }
+
+    .sidebar-header {
+      padding: 20px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+    }
+
+    .brand-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-tag {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 10px 4px 10px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-item svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      stroke-width: 2;
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      background: var(--bg-card);
+      border-radius: var(--radius-full);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .nav-item.active .nav-badge {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    /* MAIN CONTENT AREA */
+    .main-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-base);
+      position: relative;
+    }
+
+    /* TOP HEADER */
+    .top-header {
+      height: 64px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .page-title-box h1 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .page-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .header-center {
+      flex: 1;
+      max-width: 480px;
+      position: relative;
+    }
+
+    .global-search-input {
+      width: 100%;
+      height: 38px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 0 40px 0 38px;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .global-search-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--primary-light);
+      background: var(--bg-surface);
+    }
+
+    .search-icon-left {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    .search-shortcut-hint {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      pointer-events: none;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* FILTERS & TOOLBAR */
+    .filter-toolbar {
+      padding: 10px 24px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+
+    .filter-chips-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      color: var(--text-main);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .filter-select:focus {
+      border-color: var(--border-focus);
+    }
+
+    /* BOTONES */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.84rem;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border-color: var(--border-subtle);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-dim);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+    }
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: #0b0f19;
+    }
+
+    .btn-icon {
+      padding: 8px;
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .btn-icon:hover {
+      color: var(--text-main);
+      background: var(--bg-card-hover);
+    }
+    .btn-icon svg { width: 17px; height: 17px; }
+
+    /* VIEW CONTAINER */
+    .view-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: none;
+    }
+    .view-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ==========================================================================
+       1. VISTA KANBAN (AJUSTE INTELIGENTE A PANTALLA)
+       ========================================================================== */
+    #view-kanban.view-content {
+      padding: 12px 18px;
+      overflow: hidden;
+      height: calc(100vh - 128px);
+    }
+
+    .kanban-board {
+      display: flex;
+      gap: 10px;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      align-items: stretch;
+      min-height: 0;
+      overflow-x: hidden;
+    }
+
+    .kanban-board.scrollable {
+      overflow-x: auto;
+    }
+
+    .kanban-column {
+      flex: 1 1 0;
+      min-width: 0;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .kanban-board.scrollable .kanban-column {
+      min-width: 280px;
+      width: 280px;
+      flex: 0 0 280px;
+    }
+
+    .kanban-column-header {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+
+    .kanban-col-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .column-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
+
+    .column-title {
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .column-count {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: var(--radius-full);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .kanban-cards-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 50px;
+    }
+
+    .kanban-cards-list.drag-over {
+      background: var(--primary-light);
+      border: 2px dashed var(--primary);
+      border-radius: var(--radius-md);
+    }
+
+    /* CARD DE TAREA */
+    .task-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      cursor: grab;
+      user-select: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .task-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-highlight);
+      box-shadow: var(--shadow-md);
+    }
+
+    .task-card.is-dragging {
+      opacity: 0.4;
+      cursor: grabbing;
+    }
+
+    .task-card.is-blocked {
+      border-left: 4px solid var(--blocked);
+      background: linear-gradient(90deg, var(--blocked-light) 0%, var(--bg-card) 30%);
+    }
+
+    .task-card.is-warning-completed {
+      border-left: 4px solid var(--warning);
+      background: linear-gradient(90deg, var(--warning-light) 0%, var(--bg-card) 30%);
+    }
+
+    .card-top-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-project-pill {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      max-width: 170px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-code {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.35;
+    }
+
+    .card-description-preview {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.4;
+    }
+
+    /* BADGES Y ALERTAS */
+    .card-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 3px 7px;
+      border-radius: var(--radius-sm);
+    }
+
+    .badge-priority-alta, .badge-priority-urgente {
+      background: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid var(--danger-border);
+    }
+    .badge-priority-media {
+      background: var(--warning-light);
+      color: var(--warning);
+      border: 1px solid var(--warning-border);
+    }
+    .badge-priority-baja {
+      background: var(--info-light);
+      color: var(--info);
+      border: 1px solid rgba(14, 165, 233, 0.3);
+    }
+
+    .badge-blocked {
+      background: var(--blocked-light);
+      color: var(--blocked);
+      border: 1px solid var(--blocked);
+      font-weight: 700;
+    }
+
+    .badge-blocking {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid #d97706;
+    }
+
+    .badge-meeting {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .badge-warning-completed {
+      background: var(--warning-light);
+      color: var(--warning);
+      border: 1px solid var(--warning-border);
+      font-weight: 700;
+    }
+
+    /* Subtareas barra de progreso */
+    .subtasks-progress-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 4px;
+    }
+
+    .subtasks-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .progress-bar-track {
+      height: 5px;
+      background: var(--bg-surface);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: var(--radius-full);
+      transition: width 0.3s ease;
+    }
+
+    .progress-bar-fill.success {
+      background: var(--success);
+    }
+
+    .progress-bar-fill.warning {
+      background: var(--warning);
+    }
+
+    /* Pie de tarjeta */
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .card-date {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card-date.overdue {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .card-assignee {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .avatar-chip {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.68rem;
+    }
+
+    /* ==========================================================================
+       2. VISTA REUNIONES (MEETINGS HUB & ACTAS)
+       ========================================================================== */
+    .meetings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 20px;
+    }
+
+    .meeting-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+
+    .meeting-card:hover {
+      border-color: var(--border-highlight);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .meeting-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .meeting-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .meeting-projects-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .meeting-notes-preview {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-left: 3px solid var(--primary);
+      max-height: 90px;
+      overflow: hidden;
+      white-space: pre-line;
+      line-height: 1.45;
+    }
+
+    .meeting-attendees-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .member-tag {
+      font-size: 0.74rem;
+      padding: 2px 8px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: var(--radius-full);
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       3. VISTA GANTT / CRONOGRAMA INTERACTIVO
+       ========================================================================== */
+    .gantt-wrapper {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+      overflow-x: auto;
+    }
+
+    .gantt-svg-container {
+      min-width: 900px;
+      overflow-x: auto;
+    }
+
+    /* ==========================================================================
+       4. VISTA MAPA DE DEPENDENCIAS / BLOQUEOS (GRAFO)
+       ========================================================================== */
+    .dependency-graph-wrapper {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex: 1;
+    }
+
+    .graph-legend {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 10px 16px;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      font-size: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .graph-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: var(--radius-sm);
+    }
+
+    .graph-nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .dependency-node-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dependency-node-card.critical-bottleneck {
+      border: 2px solid var(--danger);
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+    }
+
+    /* ==========================================================================
+       5. VISTA CALENDARIO
+       ========================================================================== */
+    .calendar-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .calendar-header-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .calendar-month-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+    }
+
+    .calendar-weekday {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      text-align: center;
+      padding: 8px 0;
+      min-width: 0;
+    }
+
+    .calendar-day-cell {
+      min-height: 105px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.15s ease;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .calendar-day-cell:hover {
+      border-color: var(--border-highlight);
+    }
+
+    .calendar-day-cell.is-today {
+      border-color: var(--primary);
+      background: rgba(79, 70, 229, 0.08);
+    }
+
+    .day-num {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .calendar-day-cell.is-today .day-num {
+      color: var(--primary);
+    }
+
+    .calendar-item-chip {
+      font-size: 0.72rem;
+      padding: 3px 6px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      font-weight: 600;
+      display: block;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .calendar-item-task {
+      background: var(--primary-light);
+      color: var(--primary);
+      border-left: 3px solid var(--primary);
+    }
+
+    .calendar-item-meeting {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border-left: 3px solid #a855f7;
+    }
+
+    /* ==========================================================================
+       6. VISTA DASHBOARD / MÉTRICAS
+       ========================================================================== */
+    .dashboard-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .kpi-value {
+      font-family: var(--font-display);
+      font-size: 2.1rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--text-main);
+    }
+
+    .kpi-subtext {
+      font-size: 0.76rem;
+      color: var(--text-dim);
+    }
+
+    .dashboard-charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-charts-grid { grid-template-columns: 1fr; }
+    }
+
+    .chart-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chart-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    /* ==========================================================================
+       7. VISTA LISTA / TABLA DE TAREAS
+       ========================================================================== */
+    .table-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.86rem;
+    }
+
+    .data-table th {
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-dim);
+      font-weight: 700;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .data-table tr:hover td {
+      background: var(--bg-card);
+    }
+
+    /* ==========================================================================
+       MODALES Y POPUPS
+       ========================================================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-overlay);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 740px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+      overflow: hidden;
+    }
+
+    .modal-box form {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .modal-overlay.open .modal-box {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 18px 24px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-footer {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      background: var(--bg-surface);
+      flex-shrink: 0;
+    }
+
+    /* Formularios */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      min-width: 0;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-control {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      font-size: 0.86rem;
+      color: var(--text-main);
+      outline: none;
+      transition: border-color 0.15s ease;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    }
+
+    .form-control:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 60px;
+      height: 65px;
+    }
+
+    /* AUTOCOMPLETE DROPDOWN PARA @MIEMBROS */
+    .mention-dropdown {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-focus);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 120;
+      display: none;
+      min-width: 220px;
+    }
+
+    .mention-dropdown.show {
+      display: block;
+    }
+
+    .mention-item {
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 0.84rem;
+      transition: background 0.15s ease;
+    }
+
+    .mention-item:hover, .mention-item.selected {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    /* CHECKLIST DE SUBTAREAS */
+    .subtasks-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--bg-card);
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .subtask-item-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .subtask-item-row:last-child {
+      border-bottom: none;
+    }
+
+    .subtask-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .subtask-title-text {
+      flex: 1;
+      font-size: 0.85rem;
+    }
+
+    .subtask-title-text.done {
+      text-decoration: line-through;
+      color: var(--text-dim);
+    }
+
+    .subtask-delete-btn {
+      color: var(--text-dim);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+    }
+    .subtask-delete-btn:hover {
+      color: var(--danger);
+    }
+
+    /* GESTIÓN DE BLOQUEOS Y DEPENDENCIAS EN MODAL DE TAREA */
+    #modal-task .modal-box {
+      width: 95vw;
+      max-width: 1080px;
+      height: 92vh;
+      max-height: 92vh;
+    }
+
+    .dependencies-manager-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    @media (max-width: 760px) {
+      .dependencies-manager-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .dep-section-card {
+      background: var(--bg-card);
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .dep-items-list {
+      min-height: 100px;
+      max-height: 190px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .dep-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    .dep-item-row:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-highlight);
+      transform: translateY(-1px);
+    }
+
+    .dep-item-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .dep-item-code {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 0.74rem;
+      flex-shrink: 0;
+    }
+
+    .dep-item-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-main);
+      font-weight: 500;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .dep-item-remove-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      line-height: 1;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .dep-item-remove-btn:hover {
+      color: var(--danger);
+      background: var(--danger-light);
+    }
+
+    .dep-empty-hint {
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 24px 8px;
+      font-style: italic;
+    }
+
+    /* TOASTS NOTIFICACIONES */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--primary);
+      box-shadow: var(--shadow-lg);
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      font-size: 0.86rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+      animation: slideInToast 0.25s ease forwards;
+      max-width: 380px;
+    }
+
+    .toast.success { border-left-color: var(--success); }
+    .toast.warning { border-left-color: var(--warning); }
+    .toast.danger { border-left-color: var(--danger); }
+
+    @keyframes slideInToast {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ==========================================================================
+       ESTILOS PARA NOTAS RÁPIDAS EN REUNIÓN
+       ========================================================================== */
+    .quick-notes-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px;
+    }
+
+    .quick-notes-textarea {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 0.88rem;
+      outline: none;
+      resize: vertical;
+      min-height: 120px;
+      line-height: 1.5;
+    }
+
+    .quick-notes-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 8px;
+    }
+
+    .quick-notes-hint {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div class="app-container">
+
+    <!-- 1. SIDEBAR DE NAVEGACIÓN -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo">P</div>
+        <div class="brand-info">
+          <div class="brand-name">PrjManager <span class="brand-tag">PRO</span></div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-label">Vistas de Trabajo</div>
+        <div class="nav-item active" data-view="kanban">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="11" rx="1"/></svg>
+          <span>Tablero Kanban</span>
+          <span class="nav-badge" id="badge-kanban-count">0</span>
+        </div>
+        <div class="nav-item" data-view="gantt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/><rect x="7" y="4" width="6" height="4" rx="1"/><rect x="11" y="10" width="8" height="4" rx="1"/><rect x="5" y="16" width="9" height="4" rx="1"/></svg>
+          <span>Gantt / Cronograma</span>
+        </div>
+        <div class="nav-item" data-view="dependencies">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/><line x1="6" y1="9" x2="6" y2="15"/></svg>
+          <span>Mapa de Bloqueos</span>
+          <span class="nav-badge" id="badge-blocked-count" style="background:var(--blocked-light); color:var(--blocked);">0</span>
+        </div>
+        <div class="nav-item" data-view="calendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>Calendario</span>
+        </div>
+        <div class="nav-item" data-view="table">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg>
+          <span>Lista / Tabla</span>
+        </div>
+
+        <div class="nav-label">Organización</div>
+        <div class="nav-item" data-view="meetings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Reuniones y Actas</span>
+          <span class="nav-badge" id="badge-meetings-count">0</span>
+        </div>
+        <div class="nav-item" data-view="projects">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>Proyectos</span>
+          <span class="nav-badge" id="badge-projects-count">0</span>
+        </div>
+        <div class="nav-item" data-view="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+          <span>Dashboard & Métricas</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-icon" id="btn-theme-toggle" title="Cambiar tema Claro/Oscuro">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <button class="btn-icon" id="btn-export-json" title="Exportar datos a archivo JSON">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="btn-icon" id="btn-import-json-trigger" title="Importar respaldo JSON">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <input type="file" id="input-import-json" accept=".json" style="display:none;">
+        <button class="btn-icon" id="btn-clear-all" title="Vaciar aplicación (dejar en blanco)" style="color:var(--danger);" onclick="clearAllData()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </button>
+        <button class="btn-icon" id="btn-reset-demo" title="Restaurar / Cargar datos de ejemplo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- 2. ESPACIO PRINCIPAL -->
+    <main class="main-workspace">
+
+      <!-- TOP HEADER -->
+      <header class="top-header">
+        <div class="header-left">
+          <div class="page-title-box">
+            <h1 id="view-title">Tablero Kanban</h1>
+            <div class="page-subtitle" id="view-subtitle">Gestión visual del flujo de trabajo y dependencias</div>
+          </div>
+        </div>
+
+        <div class="header-center">
+          <svg class="search-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="global-search-input" id="global-search" placeholder="Buscar tareas, proyectos, notas o @personas...">
+          <button type="button" id="btn-clear-search" title="Limpiar búsqueda" onclick="clearAllFilters()" style="display:none; position:absolute; right:34px; top:50%; transform:translateY(-50%); background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:1.15rem; line-height:1; padding:2px 6px;">&times;</button>
+          <span class="search-shortcut-hint">/</span>
+        </div>
+
+        <div class="header-right">
+          <button type="button" class="btn btn-secondary" id="btn-new-meeting" onclick="openNewMeetingModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            <span>+ Reunión</span>
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-new-task" onclick="openNewTaskModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>+ Nueva Tarea</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- BARRA DE FILTROS RÁPIDOS -->
+      <div class="filter-toolbar">
+        <div class="filter-chips-group">
+          <select class="filter-select" id="filter-project">
+            <option value="all">Todos los Proyectos</option>
+            <option value="none">Sin Proyecto (Transversales)</option>
+          </select>
+          <select class="filter-select" id="filter-member">
+            <option value="all">Cualquier Miembro (@)</option>
+          </select>
+          <select class="filter-select" id="filter-priority">
+            <option value="all">Todas las Prioridades</option>
+            <option value="urgente">Urgente</option>
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="baja">Baja</option>
+          </select>
+          <select class="filter-select" id="filter-block-status">
+            <option value="all">Bloqueos: Todos</option>
+            <option value="blocked_only">Solo Bloqueadas</option>
+            <option value="blocking_only">Solo Que Bloquean a Otras</option>
+          </select>
+        </div>
+
+        <div class="filter-chips-group">
+          <span style="font-size:0.78rem; color:var(--text-muted);" id="filter-stats-text">Mostrando tareas</span>
+          <button type="button" class="btn btn-secondary" id="btn-toggle-kanban-fit" style="padding:4px 9px; font-size:0.75rem;" title="Alternar entre ajustar a pantalla o columnas anchas" onclick="toggleKanbanFit()">
+            ↔️ Ajustar pantalla
+          </button>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           VISTAS
+           ==================================================================== -->
+
+      <!-- VISTA 1: KANBAN -->
+      <section class="view-content active" id="view-kanban">
+        <div class="kanban-board" id="kanban-board-container">
+          <!-- Se genera dinámicamente mediante JS -->
+        </div>
+      </section>
+
+      <!-- VISTA 2: GANTT / CRONOGRAMA -->
+      <section class="view-content" id="view-gantt">
+        <div class="gantt-wrapper">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="font-family:var(--font-display); font-size:1.1rem; font-weight:700;">Cronograma de Actividades e Hitos</h3>
+            <div style="font-size:0.8rem; color:var(--text-muted); display:flex; gap:16px;">
+              <span>🔷 Tarea Regular</span>
+              <span>🔒 Tarea Bloqueada</span>
+              <span>🟣 Hito de Reunión</span>
+            </div>
+          </div>
+          <div class="gantt-svg-container" id="gantt-svg-container">
+            <!-- Renderizado dinámico del Gantt en SVG -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VISTA 3: MAPA DE BLOQUEOS Y DEPENDENCIAS -->
+      <section class="view-content" id="view-dependencies">
+        <div class="dependency-graph-wrapper">
+          <div class="graph-legend">
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:var(--danger);"></span>
+              <span>Cuello de Botella Crítico (Bloquea a 2+ tareas)</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:var(--blocked);"></span>
+              <span>Tarea Bloqueada (No puede comenzar)</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:var(--warning);"></span>
+              <span>Completada con Avisos (Subtareas pendientes)</span>
+            </div>
+            <div class="graph-legend-item">
+              <span class="legend-color" style="background:var(--success);"></span>
+              <span>Completada con Éxito</span>
+            </div>
+          </div>
+
+          <div class="graph-nodes-grid" id="dependencies-nodes-container">
+            <!-- Nodos renderizados dinámicamente -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VISTA 4: CALENDARIO -->
+      <section class="view-content" id="view-calendar">
+        <div class="calendar-container">
+          <div class="calendar-header-nav">
+            <div class="calendar-month-title" id="calendar-month-label">Mes Año</div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary" id="btn-cal-prev">&larr; Anterior</button>
+              <button class="btn btn-secondary" id="btn-cal-today">Hoy</button>
+              <button class="btn btn-secondary" id="btn-cal-next">Siguiente &rarr;</button>
+            </div>
+          </div>
+
+          <div class="calendar-grid" id="calendar-grid-header">
+            <div class="calendar-weekday">Lun</div>
+            <div class="calendar-weekday">Mar</div>
+            <div class="calendar-weekday">Mié</div>
+            <div class="calendar-weekday">Jue</div>
+            <div class="calendar-weekday">Vie</div>
+            <div class="calendar-weekday">Sáb</div>
+            <div class="calendar-weekday">Dom</div>
+          </div>
+
+          <div class="calendar-grid" id="calendar-days-grid">
+            <!-- Días renderizados dinámicamente -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VISTA 5: TABLA / LISTA DETALLADA -->
+      <section class="view-content" id="view-table">
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Título</th>
+                <th>Proyecto</th>
+                <th>Responsable</th>
+                <th>Prioridad</th>
+                <th>Estado</th>
+                <th>Bloqueos</th>
+                <th>Vencimiento</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="table-tasks-tbody">
+              <!-- Renderizado de filas -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VISTA 6: REUNIONES Y ACTAS -->
+      <section class="view-content" id="view-meetings">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+          <div>
+            <h2 style="font-family:var(--font-display); font-size:1.2rem; font-weight:700;">Reuniones Registradas</h2>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Actas, notas rápidas, compromisos adquiridos y asignación de proyectos</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-create-meeting-view" onclick="openNewMeetingModal()">+ Programar Nueva Reunión</button>
+        </div>
+        <div class="meetings-grid" id="meetings-grid-container">
+          <!-- Renderizado dinámico de tarjetas de reunión -->
+        </div>
+      </section>
+
+      <!-- VISTA 7: PROYECTOS -->
+      <section class="view-content" id="view-projects">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 style="font-family:var(--font-display); font-size:1.2rem; font-weight:700;">Gestión de Proyectos</h2>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Proyectos activos en curso y apartado especial para proyectos archivados/cerrados</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div style="display:flex; background:var(--bg-card); padding:3px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+              <button type="button" class="btn" id="tab-projects-active" style="padding:6px 14px; font-size:0.78rem; border:none; background:var(--primary); color:#fff; border-radius:var(--radius-sm);" onclick="switchProjectSubTab('en_curso')">
+                🟢 En Curso (<span id="count-projects-active">0</span>)
+              </button>
+              <button type="button" class="btn" id="tab-projects-closed" style="padding:6px 14px; font-size:0.78rem; border:none; background:transparent; color:var(--text-muted); border-radius:var(--radius-sm);" onclick="switchProjectSubTab('cerrado')">
+                📁 Apartado Especial: Cerrados (<span id="count-projects-closed">0</span>)
+              </button>
+            </div>
+            <button type="button" class="btn btn-primary" id="btn-create-project" onclick="openNewProjectModal()">+ Nuevo Proyecto</button>
+          </div>
+        </div>
+        <div class="meetings-grid" id="projects-grid-container">
+          <!-- Tarjetas de proyectos -->
+        </div>
+      </section>
+
+      <!-- VISTA 8: DASHBOARD & MÉTRICAS -->
+      <section class="view-content" id="view-dashboard">
+        <div class="dashboard-kpi-row">
+          <div class="kpi-card">
+            <span class="kpi-title">Tareas Totales</span>
+            <span class="kpi-value" id="kpi-total-tasks">0</span>
+            <span class="kpi-subtext" id="kpi-tasks-sub">En todos los proyectos</span>
+          </div>
+          <div class="kpi-card" style="border-left:4px solid var(--success);">
+            <span class="kpi-title">Completadas</span>
+            <span class="kpi-value" id="kpi-completed-tasks" style="color:var(--success);">0</span>
+            <span class="kpi-subtext" id="kpi-completed-rate">0% tasa de éxito</span>
+          </div>
+          <div class="kpi-card" style="border-left:4px solid var(--warning);">
+            <span class="kpi-title">Completadas c/ Avisos</span>
+            <span class="kpi-value" id="kpi-warning-tasks" style="color:var(--warning);">0</span>
+            <span class="kpi-subtext">Con subtareas abiertas</span>
+          </div>
+          <div class="kpi-card" style="border-left:4px solid var(--blocked);">
+            <span class="kpi-title">Tareas Bloqueadas</span>
+            <span class="kpi-value" id="kpi-blocked-tasks" style="color:var(--blocked);">0</span>
+            <span class="kpi-subtext">Cuellos de botella activos</span>
+          </div>
+          <div class="kpi-card" style="border-left:4px solid #a855f7;">
+            <span class="kpi-title">Reuniones Registradas</span>
+            <span class="kpi-value" id="kpi-meetings-total" style="color:#c084fc;">0</span>
+            <span class="kpi-subtext" id="kpi-actions-from-meetings">0 acuerdos generados</span>
+          </div>
+        </div>
+
+        <div class="dashboard-charts-grid">
+          <div class="chart-panel">
+            <div class="chart-header">
+              <h3 class="chart-title">Distribución de Tareas por Estado</h3>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:center; min-height:240px;" id="donut-chart-container">
+              <!-- SVG Donut Chart -->
+            </div>
+          </div>
+
+          <div class="chart-panel">
+            <div class="chart-header">
+              <h3 class="chart-title">Carga de Trabajo por Miembro (@)</h3>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px; justify-content:center; min-height:240px;" id="workload-bars-container">
+              <!-- Barras SVG de carga por miembro -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: CREAR / EDITAR TAREA
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-task">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-task-title">Nueva Tarea</h3>
+        <button class="btn-icon" onclick="closeModal('modal-task')">&times;</button>
+      </div>
+
+      <form id="form-task" onsubmit="handleSaveTask(event)">
+        <input type="hidden" id="task-id">
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label class="form-label" for="task-title-input">Título de la Tarea *</label>
+            <input type="text" class="form-control" id="task-title-input" placeholder="Ej: Redactar especificación técnica" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="task-project-select">Proyecto Asignado</label>
+              <select class="form-control" id="task-project-select">
+                <option value="">-- Sin Proyecto (Transversal / General) --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="task-meeting-select">Reunión de Origen (Opcional)</label>
+              <select class="form-control" id="task-meeting-select">
+                <option value="">-- Ninguna --</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="task-assignee-input">Responsable (usa @Nombre para registrarlo)</label>
+              <input type="text" class="form-control" id="task-assignee-input" placeholder="@Mikel, @Elena, etc.">
+              <div class="mention-dropdown" id="dropdown-task-assignee"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="task-priority-select">Prioridad</label>
+              <select class="form-control" id="task-priority-select">
+                <option value="baja">Baja</option>
+                <option value="media" selected>Media</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="task-status-select">Estado Actual</label>
+              <select class="form-control" id="task-status-select">
+                <option value="pendiente">Pendiente</option>
+                <option value="en_progreso">En Progreso</option>
+                <option value="en_revision">En Revisión</option>
+                <option value="bloqueada">Bloqueada</option>
+                <option value="completada">Completada</option>
+                <option value="completada_avisos">Completada con Avisos</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="task-due-date">Fecha Límite</label>
+              <input type="date" class="form-control" id="task-due-date">
+            </div>
+          </div>
+
+          <!-- GESTIÓN DE BLOQUEOS Y DEPENDENCIAS BIDIRECCIONAL -->
+          <div class="dependencies-manager-grid">
+            
+            <!-- SECCIÓN 1: BLOQUEADA POR OTRAS TAREAS -->
+            <div class="dep-section-card">
+              <div>
+                <div style="font-weight:700; font-size:0.83rem; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+                  <span>🔒 Dependencias: Bloqueada por otras tareas</span>
+                </div>
+                <div style="font-size:0.71rem; color:var(--text-dim); margin-top:2px;">
+                  No puede completarse hasta que estas acaben. (Doble clic para abrir)
+                </div>
+              </div>
+
+              <!-- Lista interactiva de tareas bloqueantes -->
+              <div id="task-blocked-by-list" class="dep-items-list">
+                <!-- Rellenado dinámicamente -->
+              </div>
+
+              <!-- Selector para añadir tarea bloqueante -->
+              <div style="display:flex; gap:6px;">
+                <select id="task-add-blocker-select" class="form-control" style="font-size:0.78rem; padding:4px 8px; height:32px;">
+                  <!-- Opciones -->
+                </select>
+                <button type="button" class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap; height:32px;" onclick="addBlockerTaskFromSelect()">+ Añadir</button>
+              </div>
+            </div>
+
+            <!-- SECCIÓN 2: BLOQUEA A -->
+            <div class="dep-section-card">
+              <div>
+                <div style="font-weight:700; font-size:0.83rem; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+                  <span>⚠️ Bloquea a</span>
+                </div>
+                <div style="font-size:0.71rem; color:var(--text-dim); margin-top:2px;">
+                  Tareas que esperan a esta. (Doble clic para abrir o borrar para quitar bloqueo)
+                </div>
+              </div>
+
+              <!-- Lista interactiva de tareas bloqueadas -->
+              <div id="task-blocks-list" class="dep-items-list">
+                <!-- Rellenado dinámicamente -->
+              </div>
+
+              <!-- Selector para añadir tarea a la que bloquea -->
+              <div style="display:flex; gap:6px;">
+                <select id="task-add-blocking-select" class="form-control" style="font-size:0.78rem; padding:4px 8px; height:32px;">
+                  <!-- Opciones -->
+                </select>
+                <button type="button" class="btn btn-secondary" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap; height:32px;" onclick="addBlockedTaskFromSelect()">+ Añadir</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- DESCRIPCIÓN CON MENCIONES @NOMBRE -->
+          <div class="form-group">
+            <label class="form-label" for="task-desc-input">Descripción / Detalles (escribe @Nombre para autocompletar)</label>
+            <textarea class="form-control" id="task-desc-input" placeholder="Detalla los requisitos o menciona a @David para coordinar..."></textarea>
+            <div class="mention-dropdown" id="dropdown-task-desc"></div>
+          </div>
+
+          <!-- SUBTAREAS INTERACTIVAS -->
+          <div class="form-group">
+            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Subtareas y Lista de Verificación</span>
+              <span id="modal-subtasks-summary" style="font-size:0.75rem; color:var(--text-muted);">0 de 0 completadas</span>
+            </label>
+
+            <div class="subtasks-editor">
+              <div id="subtasks-list-container">
+                <!-- Filas de subtareas -->
+              </div>
+              <div style="display:flex; gap:8px; margin-top:6px;">
+                <input type="text" class="form-control" id="new-subtask-input" placeholder="Añadir nueva subtarea (ej: Enviar borrador)...">
+                <button type="button" class="btn btn-secondary" onclick="addCurrentSubtask()">+ Añadir</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+          <button type="button" class="btn btn-secondary" id="btn-delete-task" style="color:var(--danger); border-color:var(--danger-border); display:none;" onclick="deleteCurrentTask()">🗑️ Eliminar Tarea</button>
+          <div style="display:flex; gap:10px; margin-left:auto;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modal-task')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Tarea</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: CREAR / EDITAR REUNIÓN Y ACTA EN VIVO
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-meeting">
+    <div class="modal-box" style="max-width:760px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-meeting-title">Acta de Reunión</h3>
+        <button class="btn-icon" onclick="closeModal('modal-meeting')">&times;</button>
+      </div>
+
+      <form id="form-meeting" onsubmit="handleSaveMeeting(event)">
+        <input type="hidden" id="meeting-id">
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label class="form-label" for="meeting-title-input">Título / Motivo de la Reunión *</label>
+            <input type="text" class="form-control" id="meeting-title-input" placeholder="Ej: Kickoff de Proyecto o Sincronización de Equipo" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="meeting-date-input">Fecha y Hora</label>
+              <input type="datetime-local" class="form-control" id="meeting-date-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="meeting-location-input">Lugar / Enlace Teams/Meet</label>
+              <input type="text" class="form-control" id="meeting-location-input" placeholder="Sala 2 / Enlace virtual">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Proyectos Vinculados (Puede ser ninguno, uno o varios)</label>
+            <div id="meeting-projects-checkboxes" style="display:flex; flex-wrap:wrap; gap:10px; padding:10px; background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-subtle); max-height:100px; overflow-y:auto;">
+              <!-- Checkboxes de proyectos -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="meeting-attendees-input">Asistentes (escribe con @Nombre, ej: @Carlos, @Laura, @Elena)</label>
+            <input type="text" class="form-control" id="meeting-attendees-input" placeholder="@Carlos @Laura @David">
+            <div class="mention-dropdown" id="dropdown-meeting-attendees"></div>
+          </div>
+
+          <!-- NOTAS RÁPIDAS EN VIVO Y CONVERSIÓN A TAREAS -->
+          <div class="form-group">
+            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Bloc de Notas Rápidas y Puntos Tratados</span>
+              <span style="font-size:0.75rem; color:var(--primary); font-weight:600;">⚡ Selección de texto $\rightarrow$ Convertir a Tarea</span>
+            </label>
+            <div class="quick-notes-box">
+              <textarea class="quick-notes-textarea" id="meeting-notes-input" placeholder="Escribe aquí los apuntes durante la reunión. Puedes escribir @Nombre para asignar responsables..."></textarea>
+              <div class="quick-notes-toolbar">
+                <span class="quick-notes-hint">Escribe una línea con '-' o selecciónala para crear una tarea directa.</span>
+                <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 10px;" onclick="convertNotesSelectionToTask()">
+                  ➕ Convertir nota en Tarea
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- LISTA DE TAREAS QUE HAN NACIDO DE ESTA REUNIÓN -->
+          <div class="form-group" id="meeting-action-items-section">
+            <label class="form-label">Tareas / Acuerdos generados a partir de esta reunión</label>
+            <div id="meeting-action-items-list" style="display:flex; flex-direction:column; gap:6px; font-size:0.82rem; background:var(--bg-card); padding:10px; border-radius:var(--radius-md);">
+              <span style="color:var(--text-dim);">No hay tareas vinculadas todavía.</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+          <button type="button" class="btn btn-secondary" id="btn-delete-meeting" style="color:var(--danger); border-color:var(--danger-border); display:none;" onclick="deleteCurrentMeeting()">🗑️ Eliminar Reunión</button>
+          <div style="display:flex; gap:10px; margin-left:auto;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modal-meeting')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Reunión y Acta</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: CREAR / EDITAR PROYECTO
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-project">
+    <div class="modal-box" style="max-width:540px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-project-title">Nuevo Proyecto</h3>
+        <button class="btn-icon" onclick="closeModal('modal-project')">&times;</button>
+      </div>
+
+      <form id="form-project" onsubmit="handleSaveProject(event)">
+        <input type="hidden" id="project-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="project-name-input">Nombre del Proyecto *</label>
+            <input type="text" class="form-control" id="project-name-input" placeholder="Ej: Implementación Portal Proveedores" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="project-code-input">Código / Prefijo (ej: PRJ-A)</label>
+              <input type="text" class="form-control" id="project-code-input" placeholder="PRJ-1">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="project-color-input">Color Identificativo</label>
+              <input type="color" class="form-control" id="project-color-input" value="#4f46e5" style="height:42px; padding:4px;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="project-status-select">Estado del Proyecto</label>
+            <select class="form-control" id="project-status-select">
+              <option value="en_curso" selected>🟢 En Curso (Visible en tableros y pantallas)</option>
+              <option value="cerrado">📁 Cerrado (Archivado en apartado especial)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="project-desc-input">Descripción y Objetivos</label>
+            <textarea class="form-control" id="project-desc-input" placeholder="Alcance general del proyecto..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+          <button type="button" class="btn btn-secondary" id="btn-delete-project" style="color:var(--danger); border-color:var(--danger-border); display:none;" onclick="deleteCurrentProject()">🗑️ Eliminar Proyecto</button>
+          <div style="display:flex; gap:10px; margin-left:auto;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modal-project')">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Proyecto</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL DE CONFIRMACIÓN: COMPLETAR CON AVISOS O COMPLETAR TODO
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-complete-warnings">
+    <div class="modal-box" style="max-width:480px;">
+      <div class="modal-header" style="border-bottom-color:var(--warning-border);">
+        <h3 class="modal-title" style="color:var(--warning); display:flex; align-items:center; gap:8px;">
+          ⚠️ Subtareas Pendientes
+        </h3>
+        <button class="btn-icon" onclick="closeModal('modal-complete-warnings')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="complete-warnings-message" style="font-size:0.9rem; line-height:1.5;">
+          Esta tarea contiene subtareas no completadas. ¿Cómo deseas finalizarla?
+        </p>
+        <div id="complete-warnings-subtasks-preview" style="background:var(--bg-card); padding:10px; border-radius:var(--radius-md); font-size:0.8rem; color:var(--text-muted); max-height:120px; overflow-y:auto;">
+          <!-- Listado de subtareas no hechas -->
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; flex-direction:column; gap:8px;">
+        <button type="button" class="btn btn-warning" id="btn-confirm-complete-warnings" style="width:100%;">
+          ⚡ Marcar como "Completada con Avisos"
+        </button>
+        <button type="button" class="btn btn-success" id="btn-confirm-complete-all" style="width:100%;">
+          ✓ Dar todas las subtareas por hechas y Completar
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-complete-warnings')" style="width:100%;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR DE TOASTS FLOTANTES -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ==========================================================================
+       LÓGICA JAVASCRIPT COMPLETA Y AUTÓNOMA
+       ========================================================================== -->
+  <script>
+    /* ==========================================================================
+       ESTADO GLOBAL Y PERSISTENCIA (LOCALSTORAGE)
+       ========================================================================== */
+    const STORAGE_KEY = 'prj_manager_store_v1';
+
+    let appData = {
+      projects: [],
+      tasks: [],
+      meetings: [],
+      members: [],
+      settings: {
+        theme: 'dark'
+      }
+    };
+
+    let activeView = 'kanban';
+    let currentTaskSubtasksBuffer = []; // búfer temporal al crear/editar subtareas
+    let pendingCompletionTask = null; // tarea pendiente de confirmación de subtareas abiertas
+
+    // Datos iniciales de demostración
+    const INITIAL_DEMO_DATA = {
+      projects: [
+        {
+          id: 'prj-1',
+          code: 'ERP-CORE',
+          name: 'Renovación de Sistema ERP',
+          description: 'Migración del módulo financiero y de operaciones con integración de almacén.',
+          color: '#4f46e5',
+          status: 'en_curso',
+          createdAt: '2026-09-10'
+        },
+        {
+          id: 'prj-2',
+          code: 'CLIENT-APP',
+          name: 'Portal Clientes & Cotizaciones',
+          description: 'Desarrollo de plataforma web B2B para clientes y seguimiento de pedidos en tiempo real.',
+          color: '#06b6d4',
+          status: 'en_curso',
+          createdAt: '2026-09-15'
+        },
+        {
+          id: 'prj-3',
+          code: 'IND-IOT',
+          name: 'Monitoreo Planta Inteligente',
+          description: 'Instalación de sensores de telemetría y panel de mantenimiento predictivo.',
+          color: '#10b981',
+          status: 'en_curso',
+          createdAt: '2026-09-20'
+        }
+      ],
+      members: ['David', 'Laura', 'Carlos', 'Elena', 'Mikel', 'Ainara'],
+      meetings: [
+        {
+          id: 'meet-1',
+          title: 'Comité de Dirección y Estrategia Q4',
+          date: '2026-10-02T10:00',
+          location: 'Sala Magna / Teams',
+          projectIds: ['prj-1', 'prj-2'], // Transversal a 2 proyectos
+          attendees: ['@David', '@Laura', '@Carlos'],
+          notes: "Revisión de plazos presupuestarios.\n- Necesario desbloquear la pasarela de pagos antes del viernes.\n- @Elena debe certificar la base de datos de clientes.",
+          actionItemIds: ['tsk-101', 'tsk-102']
+        },
+        {
+          id: 'meet-2',
+          title: 'Seguimiento Técnico Mantenimiento Planta',
+          date: '2026-10-05T15:30',
+          location: 'Planta 1 - Oficina Técnica',
+          projectIds: ['prj-3'], // De 1 proyecto específico
+          attendees: ['@Mikel', '@Ainara'],
+          notes: "Instalación de los nuevos autómatas finalizada.\n- Configurar alertas de temperatura en dashboard para evitar paradas.",
+          actionItemIds: ['tsk-104']
+        },
+        {
+          id: 'meet-3',
+          title: 'Sincronización Operativa Departamental',
+          date: '2026-10-08T09:00',
+          location: 'Virtual Meet',
+          projectIds: [], // Sin proyecto asignado (General / Transversal)
+          attendees: ['@David', '@Carlos', '@Laura', '@Mikel'],
+          notes: "Revisión de cargas de trabajo de la plantilla y asignación de guardias técnicas.",
+          actionItemIds: []
+        }
+      ],
+      tasks: [
+        {
+          id: 'tsk-101',
+          code: 'TSK-101',
+          title: 'Validar arquitectura de base de datos migrada',
+          description: 'Comprobar integridad referencial y tiempos de respuesta con @Elena y @Carlos.',
+          projectId: 'prj-1',
+          meetingId: 'meet-1',
+          assignedTo: 'Carlos',
+          priority: 'urgente',
+          status: 'completada',
+          startDate: '2026-09-25',
+          dueDate: '2026-10-01',
+          blockedBy: [],
+          subtasks: [
+            { id: 'sub-1', title: 'Comprobar índices de tablas maestras', completed: true },
+            { id: 'sub-2', title: 'Ejecutar script de validación de checksum', completed: true }
+          ]
+        },
+        {
+          id: 'tsk-102',
+          code: 'TSK-102',
+          title: 'Integrar pasarela de cobros segura en el portal B2B',
+          description: 'Configurar certificados TLS y conexión con webhook de la entidad bancaria. Depende de la validación de DB.',
+          projectId: 'prj-2',
+          meetingId: 'meet-1',
+          assignedTo: 'David',
+          priority: 'alta',
+          status: 'en_progreso',
+          startDate: '2026-10-01',
+          dueDate: '2026-10-08',
+          blockedBy: ['tsk-101'],
+          subtasks: [
+            { id: 'sub-3', title: 'Definir endpoints de webhook', completed: true },
+            { id: 'sub-4', title: 'Pruebas en sandbox con tarjetas de test', completed: false },
+            { id: 'sub-5', title: 'Firmar contrato de producción con banco', completed: false }
+          ]
+        },
+        {
+          id: 'tsk-103',
+          code: 'TSK-103',
+          title: 'Pruebas de carga y estrés en servidores',
+          description: 'Esta tarea está bloqueada hasta que la pasarela esté integrada.',
+          projectId: 'prj-2',
+          meetingId: null,
+          assignedTo: 'Laura',
+          priority: 'media',
+          status: 'bloqueada',
+          startDate: '2026-10-08',
+          dueDate: '2026-10-15',
+          blockedBy: ['tsk-102'],
+          subtasks: [
+            { id: 'sub-6', title: 'Simulación de 500 usuarios concurrentes', completed: false },
+            { id: 'sub-7', title: 'Informe de latencia y picos de CPU', completed: false }
+          ]
+        },
+        {
+          id: 'tsk-104',
+          code: 'TSK-104',
+          title: 'Calibración de sensores de vibración y temperatura',
+          description: 'Surgida de la reunión técnica de planta. Se cerró con advertencias al no recibirse los recambios finales.',
+          projectId: 'prj-3',
+          meetingId: 'meet-2',
+          assignedTo: 'Mikel',
+          priority: 'alta',
+          status: 'completada_avisos',
+          startDate: '2026-09-28',
+          dueDate: '2026-10-03',
+          blockedBy: [],
+          subtasks: [
+            { id: 'sub-8', title: 'Calibrar sensor zona A y B', completed: true },
+            { id: 'sub-9', title: 'Instalar repuesto de backup zona C', completed: false }
+          ]
+        },
+        {
+          id: 'tsk-105',
+          code: 'TSK-105',
+          title: 'Actualizar protocolo de seguridad perimetral',
+          description: 'Tarea administrativa y transversal de ciberseguridad sin pertenecer a ningún proyecto específico.',
+          projectId: null, // Transversal
+          meetingId: null,
+          assignedTo: 'Elena',
+          priority: 'baja',
+          status: 'pendiente',
+          startDate: '2026-10-02',
+          dueDate: '2026-10-20',
+          blockedBy: [],
+          subtasks: [
+            { id: 'sub-10', title: 'Revisión de accesos VPN', completed: false },
+            { id: 'sub-11', title: 'Difusión de pautas anti-phishing', completed: false }
+          ]
+        }
+      ]
+    };
+
+    /* ==========================================================================
+       INICIALIZACIÓN
+       ========================================================================== */
+    function initApp() {
+      try {
+        loadData();
+        applyTheme((appData.settings && appData.settings.theme) || 'dark');
+        bindGlobalEvents();
+        populateFilterSelectors();
+        updateAllViewCounts();
+        renderActiveView();
+        renderDashboardCharts();
+        showToast('Aplicación lista con datos cargados', 'success');
+      } catch (err) {
+        console.error('Error durante la inicialización:', err);
+      }
+    }
+
+    function loadData() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && typeof parsed === 'object') {
+            appData = {
+              projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+              tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+              meetings: Array.isArray(parsed.meetings) ? parsed.meetings : [],
+              members: Array.isArray(parsed.members) ? parsed.members : [],
+              settings: (parsed.settings && typeof parsed.settings === 'object') ? parsed.settings : { theme: 'dark' }
+            };
+            
+            // Asegurar que todos los proyectos tienen status
+            (appData.projects || []).forEach(p => {
+              if (!p.status) p.status = 'en_curso';
+            });
+          } else {
+            appData = JSON.parse(JSON.stringify(INITIAL_DEMO_DATA));
+            saveData();
+          }
+        } else {
+          appData = JSON.parse(JSON.stringify(INITIAL_DEMO_DATA));
+          saveData();
+        }
+      } catch (e) {
+        console.error('Error cargando localStorage', e);
+        appData = {
+          projects: [],
+          tasks: [],
+          meetings: [],
+          members: [],
+          settings: { theme: 'dark' }
+        };
+      }
+    }
+
+    function saveData() {
+      try {
+        if (!appData.settings) appData.settings = { theme: 'dark' };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+        updateAllViewCounts();
+      } catch (e) {
+        console.error('Error guardando en localStorage', e);
+        showToast('Error al guardar datos en el almacenamiento local', 'danger');
+      }
+    }
+
+    function clearAllData() {
+      if (!confirm('¿Estás seguro de que deseas vaciar la aplicación por completo?\n\nSe eliminarán todos los proyectos, tareas y reuniones para que puedas empezar en blanco.')) {
+        return;
+      }
+      appData = {
+        projects: [],
+        tasks: [],
+        meetings: [],
+        members: [],
+        settings: (appData && appData.settings) ? appData.settings : { theme: 'dark' }
+      };
+      saveData();
+      populateFilterSelectors();
+      updateAllViewCounts();
+      renderActiveView();
+      renderDashboardCharts();
+      showToast('Aplicación vaciada. Lista para comenzar en blanco.', 'info');
+    }
+
+    function restoreDemoData() {
+      if (!confirm('¿Deseas restaurar los datos iniciales de demostración? Se sobreescribirán los datos actuales.')) {
+        return;
+      }
+      appData = JSON.parse(JSON.stringify(INITIAL_DEMO_DATA));
+      saveData();
+      populateFilterSelectors();
+      updateAllViewCounts();
+      renderActiveView();
+      renderDashboardCharts();
+      showToast('Datos de demostración restaurados correctamente.', 'success');
+    }
+
+    /* CONTROL DE ESTADO DE PROYECTOS (EN CURSO vs CERRADOS) */
+    let currentProjectSubTab = 'en_curso';
+
+    function isProjectActive(projectId) {
+      if (!projectId) return true; // Tareas/reuniones transversales (sin proyecto) siempre visibles
+      const prj = (appData.projects || []).find(p => p.id === projectId);
+      if (!prj) return true;
+      return prj.status !== 'cerrado';
+    }
+
+    function isMeetingActive(meeting) {
+      if (!meeting) return false;
+      if (!meeting.projectIds || meeting.projectIds.length === 0) return true; // Reuniones generales/transversales
+      // Visible si al menos uno de sus proyectos está en curso
+      return meeting.projectIds.some(pid => isProjectActive(pid));
+    }
+
+    function switchProjectSubTab(tab) {
+      currentProjectSubTab = tab;
+      const tabActive = document.getElementById('tab-projects-active');
+      const tabClosed = document.getElementById('tab-projects-closed');
+
+      if (tabActive && tabClosed) {
+        if (tab === 'en_curso') {
+          tabActive.style.background = 'var(--primary)';
+          tabActive.style.color = '#fff';
+          tabClosed.style.background = 'transparent';
+          tabClosed.style.color = 'var(--text-muted)';
+        } else {
+          tabClosed.style.background = 'var(--danger)';
+          tabClosed.style.color = '#fff';
+          tabActive.style.background = 'transparent';
+          tabActive.style.color = 'var(--text-muted)';
+        }
+      }
+      renderProjectsView();
+    }
+    window.switchProjectSubTab = switchProjectSubTab;
+
+    function toggleProjectStatus(projectId) {
+      const prj = (appData.projects || []).find(p => p.id === projectId);
+      if (!prj) return;
+      const isReopening = prj.status === 'cerrado';
+      prj.status = isReopening ? 'en_curso' : 'cerrado';
+      saveData();
+      populateFilterSelectors();
+      updateAllViewCounts();
+      renderActiveView();
+      showToast(isReopening ? `Proyecto "${prj.name}" reactivado y puesto en curso` : `Proyecto "${prj.name}" archivado como cerrado`, isReopening ? 'success' : 'info');
+    }
+    window.toggleProjectStatus = toggleProjectStatus;
+
+    /* ==========================================================================
+       GESTIÓN DINÁMICA DE MIEMBROS (@NOMBRE)
+       ========================================================================== */
+    function registerMemberIfNeeded(name) {
+      if (!name) return;
+      const cleanName = name.replace(/^@/, '').trim();
+      if (!cleanName) return;
+
+      const exists = appData.members.some(m => m.toLowerCase() === cleanName.toLowerCase());
+      if (!exists) {
+        appData.members.push(cleanName);
+        appData.members.sort((a, b) => a.localeCompare(b));
+        saveData();
+        populateFilterSelectors();
+        showToast(`Nuevo miembro registrado: @${cleanName}`, 'info');
+      }
+    }
+
+    function extractAndRegisterMentionsFromText(text) {
+      if (!text) return;
+      const regex = /@([a-zA-Z0-9_\u00C0-\u017F]+)/g;
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        registerMemberIfNeeded(match[1]);
+      }
+    }
+
+    /* Autocompletado interactivo al escribir @ */
+    function setupMentionAutocomplete(inputId, dropdownId, onSelectCallback) {
+      const inputEl = document.getElementById(inputId);
+      const dropdownEl = document.getElementById(dropdownId);
+      if (!inputEl || !dropdownEl) return;
+
+      inputEl.addEventListener('input', (e) => {
+        const val = inputEl.value;
+        const cursorPosition = inputEl.selectionStart || val.length;
+        const textBeforeCursor = val.slice(0, cursorPosition);
+        const lastAtMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\u00C0-\u017F]*)$/);
+
+        if (lastAtMatch) {
+          const query = lastAtMatch[1].toLowerCase();
+          const filtered = appData.members.filter(m => m.toLowerCase().includes(query));
+
+          if (filtered.length > 0 || query.length > 1) {
+            renderMentionDropdown(dropdownEl, filtered, query, (selectedName) => {
+              // Reemplazar la mención en el texto
+              const startIdx = textBeforeCursor.lastIndexOf('@');
+              const endIdx = cursorPosition;
+              const newText = val.slice(0, startIdx) + '@' + selectedName + ' ' + val.slice(endIdx);
+              inputEl.value = newText;
+              dropdownEl.classList.remove('show');
+              registerMemberIfNeeded(selectedName);
+              if (onSelectCallback) onSelectCallback(selectedName);
+              inputEl.focus();
+            });
+            dropdownEl.classList.add('show');
+            return;
+          }
+        }
+        dropdownEl.classList.remove('show');
+      });
+
+      // Cerrar si se hace clic fuera
+      document.addEventListener('click', (e) => {
+        if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+          dropdownEl.classList.remove('show');
+        }
+      });
+    }
+
+    function renderMentionDropdown(container, membersList, query, onSelect) {
+      container.innerHTML = '';
+      if (membersList.length === 0 && query) {
+        const addDiv = document.createElement('div');
+        addDiv.className = 'mention-item';
+        addDiv.innerHTML = `<strong>+ Añadir a "@${query}"</strong>`;
+        addDiv.onclick = () => onSelect(query);
+        container.appendChild(addDiv);
+        return;
+      }
+
+      membersList.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'mention-item';
+        item.innerHTML = `<span class="avatar-chip">${m.charAt(0).toUpperCase()}</span> <span>@${m}</span>`;
+        item.onclick = () => onSelect(m);
+        container.appendChild(item);
+      });
+    }
+
+    /* ==========================================================================
+       SISTEMA DE DEPENDENCIAS Y BLOQUEOS
+       ========================================================================== */
+    function isTaskBlocked(task) {
+      if (!task.blockedBy || task.blockedBy.length === 0) return false;
+      // Una tarea está bloqueada si alguna de las tareas que la bloquean NO está completada (ni completada_avisos)
+      return task.blockedBy.some(blockerId => {
+        const blocker = appData.tasks.find(t => t.id === blockerId);
+        if (!blocker || !isProjectActive(blocker.projectId)) return false;
+        return blocker.status !== 'completada' && blocker.status !== 'completada_avisos';
+      });
+    }
+
+    function getTasksBlockedBy(taskId) {
+      return appData.tasks.filter(t => t.blockedBy && t.blockedBy.includes(taskId) && isProjectActive(t.projectId));
+    }
+
+    function getBlockersInfo(task) {
+      if (!task.blockedBy || task.blockedBy.length === 0) return [];
+      return task.blockedBy.map(id => appData.tasks.find(t => t.id === id)).filter(t => t && isProjectActive(t.projectId));
+    }
+
+    /* ==========================================================================
+       GESTIÓN DE SUBTAREAS Y REGLAS DE COMPLETADO
+       ========================================================================== */
+    function checkSubtasksCompletion(task) {
+      if (!task.subtasks || task.subtasks.length === 0) return { total: 0, done: 0, allDone: true };
+      const total = task.subtasks.length;
+      const done = task.subtasks.filter(s => s.completed).length;
+      return { total, done, allDone: total === done };
+    }
+
+    function promptTaskCompletionWithWarnings(task, onProceed) {
+      const stats = checkSubtasksCompletion(task);
+      if (stats.allDone) {
+        // Todas están hechas o no tiene subtareas: completar limpiamente
+        task.status = 'completada';
+        saveData();
+        checkAndNotifyUnblockedTasks(task);
+        renderActiveView();
+        showToast(`Tarea ${task.code} marcada como Completada`, 'success');
+        if (onProceed) onProceed();
+        return;
+      }
+
+      // Si tiene subtareas pendientes, abrir modal de aviso
+      pendingCompletionTask = { task, onProceed };
+      const msgEl = document.getElementById('complete-warnings-message');
+      const listEl = document.getElementById('complete-warnings-subtasks-preview');
+
+      msgEl.innerHTML = `La tarea <strong>${task.code} - ${task.title}</strong> tiene <strong>${stats.total - stats.done}</strong> de <strong>${stats.total}</strong> subtareas pendientes.`;
+
+      listEl.innerHTML = task.subtasks.map(s => `
+        <div style="display:flex; align-items:center; gap:8px; padding:3px 0;">
+          <span>${s.completed ? '✅' : '⏳'}</span>
+          <span style="${s.completed ? 'text-decoration:line-through; opacity:0.6;' : 'font-weight:600; color:var(--warning);'}">${s.title}</span>
+        </div>
+      `).join('');
+
+      openModal('modal-complete-warnings');
+    }
+
+    function checkAndNotifyUnblockedTasks(completedTask) {
+      const blockedDependents = getTasksBlockedBy(completedTask.id);
+      blockedDependents.forEach(dep => {
+        if (!isTaskBlocked(dep)) {
+          // Ha quedado totalmente desbloqueada
+          if (dep.status === 'bloqueada') {
+            dep.status = 'pendiente';
+          }
+          showToast(`🔓 Tarea desbloqueada: [${dep.code}] ${dep.title}`, 'info');
+        }
+      });
+      saveData();
+    }
+
+    /* ==========================================================================
+       ENRUTAMIENTO DE VISTAS
+       ========================================================================== */
+    function switchView(viewName) {
+      activeView = viewName;
+
+      // Actualizar menú lateral
+      document.querySelectorAll('.sidebar-nav .nav-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.view === viewName);
+      });
+
+      // Actualizar contenedores de vista
+      document.querySelectorAll('.view-content').forEach(el => {
+        el.classList.remove('active');
+      });
+
+      const targetEl = document.getElementById(`view-${viewName}`);
+      if (targetEl) targetEl.classList.add('active');
+
+      // Títulos dinámicos de cabecera
+      const titles = {
+        kanban: { t: 'Tablero Kanban', s: 'Gestión visual de tareas por columnas de estado y arrastre' },
+        gantt: { t: 'Cronograma Gantt', s: 'Línea de tiempo con fechas límite, reuniones e hitos' },
+        dependencies: { t: 'Mapa de Bloqueos y Dependencias', s: 'Trazabilidad de cuellos de botella e impedimentos entre tareas' },
+        calendar: { t: 'Calendario Mensual', s: 'Planificación de entregas de tareas y convocatorias de reuniones' },
+        table: { t: 'Lista Detallada', s: 'Visualización tabular para búsqueda y filtrado rápido' },
+        meetings: { t: 'Reuniones y Actas', s: 'Registro de actas, notas rápidas y compromisos de proyecto' },
+        projects: { t: 'Proyectos Activos', s: 'Visión general de cartera de proyectos, salud y avance' },
+        dashboard: { t: 'Dashboard & Métricas', s: 'Gráficos de carga de trabajo, estados y compromisos' }
+      };
+
+      if (titles[viewName]) {
+        document.getElementById('view-title').textContent = titles[viewName].t;
+        document.getElementById('view-subtitle').textContent = titles[viewName].s;
+      }
+
+      renderActiveView();
+    }
+
+    function renderActiveView() {
+      filterTasksData(); // aplica filtros activos
+      if (activeView === 'kanban') renderKanbanBoard();
+      else if (activeView === 'gantt') renderGanttView();
+      else if (activeView === 'dependencies') renderDependenciesView();
+      else if (activeView === 'calendar') renderCalendarView();
+      else if (activeView === 'table') renderTableView();
+      else if (activeView === 'meetings') renderMeetingsView();
+      else if (activeView === 'projects') renderProjectsView();
+      else if (activeView === 'dashboard') renderDashboardCharts();
+    }
+
+    /* ==========================================================================
+       FILTRADO Y BÚSQUEDA INTELIGENTE
+       ========================================================================== */
+    let filteredTasksCache = [];
+
+    function normalizeSearchText(str) {
+      if (!str) return '';
+      return String(str)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+    }
+
+    function doesTaskMatchSearch(task, queryTokens) {
+      if (!queryTokens || queryTokens.length === 0) return true;
+
+      const project = appData.projects.find(p => p.id === task.projectId);
+      const meeting = appData.meetings.find(m => m.id === task.meetingId);
+
+      // Consolidar todos los campos textuales de la tarea para búsqueda amplia
+      const searchableFields = [
+        task.code || '',
+        task.title || '',
+        task.description || '',
+        task.assignedTo || '',
+        '@' + (task.assignedTo || ''),
+        task.priority || '',
+        (task.status || '').replace('_', ' '),
+        project ? project.code : '',
+        project ? project.name : '',
+        meeting ? meeting.title : '',
+        ...(Array.isArray(task.subtasks) ? task.subtasks.map(s => s.title || '') : [])
+      ];
+
+      const fullText = searchableFields.map(f => normalizeSearchText(f)).join(' ');
+
+      // Todas las palabras clave deben coincidir
+      return queryTokens.every(token => fullText.includes(token));
+    }
+
+    function filterTasksData() {
+      const searchInput = document.getElementById('global-search');
+      const rawQ = (searchInput ? searchInput.value : '').trim();
+      const clearBtn = document.getElementById('btn-clear-search');
+      if (clearBtn) clearBtn.style.display = rawQ ? 'inline-flex' : 'none';
+
+      const normQ = normalizeSearchText(rawQ);
+      const queryTokens = normQ ? normQ.split(/\s+/).map(t => t.replace(/^@/, '')).filter(Boolean) : [];
+
+      const prjFilter = document.getElementById('filter-project').value;
+      const memberFilter = document.getElementById('filter-member').value;
+      const priorityFilter = document.getElementById('filter-priority').value;
+      const blockFilter = document.getElementById('filter-block-status').value;
+
+      filteredTasksCache = appData.tasks.filter(t => {
+        // REGLA FUNDAMENTAL: Solo mostrar tareas pertenecientes a proyectos en curso (o transversales/sin proyecto)
+        if (!isProjectActive(t.projectId)) return false;
+
+        // Búsqueda inteligente por texto
+        if (queryTokens.length > 0) {
+          if (!doesTaskMatchSearch(t, queryTokens)) return false;
+        }
+
+        // Filtro por proyecto
+        if (prjFilter !== 'all') {
+          if (prjFilter === 'none') {
+            if (t.projectId) return false;
+          } else if (t.projectId !== prjFilter) {
+            return false;
+          }
+        }
+
+        // Filtro por miembro
+        if (memberFilter !== 'all') {
+          const cleanMem = normalizeSearchText(memberFilter);
+          const isAssigned = normalizeSearchText(t.assignedTo) === cleanMem;
+          const mentionsInDesc = normalizeSearchText(t.description).includes('@' + cleanMem);
+          if (!isAssigned && !mentionsInDesc) return false;
+        }
+
+        // Filtro por prioridad
+        if (priorityFilter !== 'all' && t.priority !== priorityFilter) {
+          return false;
+        }
+
+        // Filtro por bloqueos
+        if (blockFilter === 'blocked_only') {
+          if (!isTaskBlocked(t) && t.status !== 'bloqueada') return false;
+        } else if (blockFilter === 'blocking_only') {
+          const blocksOthers = getTasksBlockedBy(t.id).length > 0;
+          if (!blocksOthers) return false;
+        }
+
+        return true;
+      });
+
+      const statsEl = document.getElementById('filter-stats-text');
+      if (statsEl) {
+        const hasFilters = queryTokens.length > 0 || prjFilter !== 'all' || memberFilter !== 'all' || priorityFilter !== 'all' || blockFilter !== 'all';
+        if (hasFilters) {
+          statsEl.innerHTML = `Mostrando <strong>${filteredTasksCache.length}</strong> de ${appData.tasks.length} tareas <button type="button" onclick="clearAllFilters()" style="background:none; border:none; color:var(--primary); cursor:pointer; text-decoration:underline; font-size:0.75rem; margin-left:8px;">Limpiar filtros</button>`;
+        } else {
+          statsEl.textContent = `Mostrando ${filteredTasksCache.length} de ${appData.tasks.length} tareas`;
+        }
+      }
+    }
+
+    function clearAllFilters() {
+      const searchInput = document.getElementById('global-search');
+      if (searchInput) searchInput.value = '';
+      const clearBtn = document.getElementById('btn-clear-search');
+      if (clearBtn) clearBtn.style.display = 'none';
+
+      const pSel = document.getElementById('filter-project');
+      if (pSel) pSel.value = 'all';
+      const mSel = document.getElementById('filter-member');
+      if (mSel) mSel.value = 'all';
+      const prSel = document.getElementById('filter-priority');
+      if (prSel) prSel.value = 'all';
+      const bSel = document.getElementById('filter-block-status');
+      if (bSel) bSel.value = 'all';
+
+      renderActiveView();
+    }
+
+    /* ==========================================================================
+       RENDERIZADO: 1. TABLERO KANBAN
+       ========================================================================== */
+    const KANBAN_COLUMNS = [
+      { id: 'pendiente', title: 'Pendiente', color: '#94a3b8' },
+      { id: 'en_progreso', title: 'En Progreso', color: '#3b82f6' },
+      { id: 'en_revision', title: 'En Revisión', color: '#a855f7' },
+      { id: 'bloqueada', title: 'Bloqueada', color: '#ec4899' },
+      { id: 'completada', title: 'Completada', color: '#10b981' },
+      { id: 'completada_avisos', title: 'Completada c/ Avisos', color: '#f59e0b' }
+    ];
+
+    function renderKanbanBoard() {
+      const container = document.getElementById('kanban-board-container');
+      if (!container) return;
+
+      if (appData.tasks.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column:1 / -1; width:100%; padding:48px 24px; text-align:center; background:var(--bg-surface); border:1px dashed var(--border-subtle); border-radius:var(--radius-lg); margin:12px 0;">
+            <div style="font-size:1.8rem; margin-bottom:8px;">📋</div>
+            <div style="font-size:1.05rem; font-weight:700; color:var(--text-main);">No hay tareas registradas en la aplicación</div>
+            <div style="font-size:0.85rem; color:var(--text-dim); margin-top:6px;">Puedes crear una nueva tarea para comenzar o restaurar los datos de ejemplo si lo prefieres.</div>
+            <div style="display:flex; justify-content:center; gap:10px; margin-top:16px;">
+              <button type="button" class="btn btn-primary" onclick="openNewTaskModal()">+ Nueva Tarea</button>
+              <button type="button" class="btn btn-secondary" onclick="restoreDemoData()">Cargar datos de ejemplo</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (filteredTasksCache.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column:1 / -1; width:100%; padding:48px 24px; text-align:center; background:var(--bg-surface); border:1px dashed var(--border-subtle); border-radius:var(--radius-lg); margin:12px 0;">
+            <div style="font-size:1.8rem; margin-bottom:8px;">🔍</div>
+            <div style="font-size:1.05rem; font-weight:700; color:var(--text-main);">No se encontraron tareas que coincidan con la búsqueda</div>
+            <div style="font-size:0.85rem; color:var(--text-dim); margin-top:6px;">Prueba a cambiar las palabras clave o limpia los filtros activos.</div>
+            <button type="button" class="btn btn-secondary" style="margin-top:14px; font-size:0.82rem;" onclick="clearAllFilters()">Limpiar todos los filtros</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = KANBAN_COLUMNS.map(col => {
+        const colTasks = filteredTasksCache.filter(t => t.status === col.id);
+        return `
+          <div class="kanban-column" data-status="${col.id}">
+            <div class="kanban-column-header">
+              <div class="kanban-col-title-wrap">
+                <span class="column-indicator" style="background:${col.color};"></span>
+                <span class="column-title">${col.title}</span>
+              </div>
+              <span class="column-count">${colTasks.length}</span>
+            </div>
+            <div class="kanban-cards-list" data-column-status="${col.id}" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, '${col.id}')">
+              ${colTasks.map(t => createTaskCardHTML(t)).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function createTaskCardHTML(task) {
+      const project = appData.projects.find(p => p.id === task.projectId);
+      const meeting = appData.meetings.find(m => m.id === task.meetingId);
+      const blocked = isTaskBlocked(task) || task.status === 'bloqueada';
+      const blockers = getBlockersInfo(task);
+      const blocksOthers = getTasksBlockedBy(task.id);
+      const subStats = checkSubtasksCompletion(task);
+      const isWarningCompleted = task.status === 'completada_avisos';
+
+      // Proyecto badge
+      let projectBadge = `<span class="card-project-pill" style="background:rgba(255,255,255,0.08); color:var(--text-muted);">Transversal</span>`;
+      if (project) {
+        projectBadge = `<span class="card-project-pill" style="background:${project.color}22; color:${project.color}; border:1px solid ${project.color}44;">● ${escapeHTML(project.name)}</span>`;
+      }
+
+      // Bloqueos tooltip / texto
+      let blockerBadge = '';
+      if (blocked && blockers.length > 0) {
+        const blockerCodes = blockers.map(b => b.code).join(', ');
+        blockerBadge = `<span class="badge badge-blocked" title="Bloqueada por: ${blockerCodes}">🔒 Bloqueada (${blockerCodes})</span>`;
+      } else if (task.status === 'bloqueada') {
+        blockerBadge = `<span class="badge badge-blocked">🔒 Bloqueada</span>`;
+      }
+
+      // Si bloquea a otras tareas
+      let blockingBadge = '';
+      if (blocksOthers.length > 0) {
+        blockingBadge = `<span class="badge badge-blocking" title="Bloquea el inicio de ${blocksOthers.length} tarea(s)">⚠️ Bloquea a ${blocksOthers.length}</span>`;
+      }
+
+      // Si nació de una reunión
+      let meetingBadge = '';
+      if (meeting) {
+        meetingBadge = `<span class="badge badge-meeting" title="Acuerdo de reunión: ${escapeHTML(meeting.title)}">🤝 ${escapeHTML(meeting.title.substring(0, 18))}...</span>`;
+      }
+
+      // Subtareas progreso
+      let subtasksHTML = '';
+      if (subStats.total > 0) {
+        const pct = Math.round((subStats.done / subStats.total) * 100);
+        const fillClass = isWarningCompleted ? 'warning' : (subStats.allDone ? 'success' : '');
+        subtasksHTML = `
+          <div class="subtasks-progress-box">
+            <div class="subtasks-label">
+              <span>Subtareas: ${subStats.done}/${subStats.total}</span>
+              <span>${pct}%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill ${fillClass}" style="width:${pct}%;"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      const cardClass = `task-card ${blocked ? 'is-blocked' : ''} ${isWarningCompleted ? 'is-warning-completed' : ''}`;
+
+      return `
+        <div class="${cardClass}" draggable="true" data-task-id="${task.id}" ondragstart="handleDragStart(event, '${task.id}')" onclick="openEditTaskModal('${task.id}')">
+          <div class="card-top-meta">
+            ${projectBadge}
+            <span class="card-code">${task.code}</span>
+          </div>
+
+          <div class="card-title">${escapeHTML(task.title)}</div>
+
+          ${task.description ? `<div class="card-description-preview">${escapeHTML(task.description)}</div>` : ''}
+
+          <div class="card-badges">
+            <span class="badge badge-priority-${task.priority}">${task.priority.toUpperCase()}</span>
+            ${blockerBadge}
+            ${blockingBadge}
+            ${meetingBadge}
+            ${isWarningCompleted ? `<span class="badge badge-warning-completed">⚠️ Incompleta (${subStats.total - subStats.done} sub.)</span>` : ''}
+          </div>
+
+          ${subtasksHTML}
+
+          <div class="card-footer">
+            <div class="card-date ${isDueDateOverdue(task.dueDate, task.status) ? 'overdue' : ''}">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>${task.dueDate ? formatDate(task.dueDate) : 'Sin fecha'}</span>
+            </div>
+
+            <div class="card-assignee">
+              ${task.assignedTo ? `
+                <span class="avatar-chip" title="Responsable: @${task.assignedTo}">${task.assignedTo.charAt(0).toUpperCase()}</span>
+                <span>@${escapeHTML(task.assignedTo)}</span>
+              ` : '<span style="color:var(--text-dim);">Sin asignar</span>'}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /* DRAG & DROP EN KANBAN */
+    let draggedTaskId = null;
+
+    function handleDragStart(e, taskId) {
+      draggedTaskId = taskId;
+      e.dataTransfer.setData('text/plain', taskId);
+      e.target.classList.add('is-dragging');
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleDrop(e, targetStatus) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      const taskId = e.dataTransfer.getData('text/plain') || draggedTaskId;
+      if (!taskId) return;
+
+      const task = appData.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      // Si se arrastra a 'completada' y tiene subtareas pendientes
+      if (targetStatus === 'completada') {
+        promptTaskCompletionWithWarnings(task, () => {
+          renderActiveView();
+        });
+        return;
+      }
+
+      task.status = targetStatus;
+      saveData();
+      renderActiveView();
+      showToast(`Tarea ${task.code} movida a ${targetStatus.replace('_', ' ')}`, 'info');
+    }
+
+    function toggleKanbanFit() {
+      const board = document.getElementById('kanban-board-container');
+      const btn = document.getElementById('btn-toggle-kanban-fit');
+      if (!board) return;
+      board.classList.toggle('scrollable');
+      const isScrollable = board.classList.contains('scrollable');
+      if (btn) {
+        btn.innerHTML = isScrollable ? '↔️ Ajustar pantalla' : '📜 Columnas anchas';
+      }
+      showToast(isScrollable ? 'Vista de columnas anchas con desplazamiento' : 'Ajustado a pantalla (sin barra de desplazamiento)', 'info');
+    }
+
+    /* ==========================================================================
+       RENDERIZADO: 2. GANTT / CRONOGRAMA INTERACTIVO
+       ========================================================================== */
+    function renderGanttView() {
+      const container = document.getElementById('gantt-svg-container');
+      if (!container) return;
+
+      const tasksWithDates = filteredTasksCache.filter(t => t.dueDate);
+      if (tasksWithDates.length === 0) {
+        container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted);">No hay tareas con fecha límite para representar en el cronograma.</div>`;
+        return;
+      }
+
+      // Rango de fechas (mínima y máxima)
+      const now = new Date();
+      let minDate = new Date(now.getTime() - 7 * 86400000);
+      let maxDate = new Date(now.getTime() + 21 * 86400000);
+
+      tasksWithDates.forEach(t => {
+        const d = new Date(t.dueDate);
+        if (d < minDate) minDate = new Date(d.getTime() - 2 * 86400000);
+        if (d > maxDate) maxDate = new Date(d.getTime() + 4 * 86400000);
+      });
+
+      const totalDays = Math.max(15, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)));
+      const dayWidth = 42;
+      const rowHeight = 44;
+      const headerHeight = 50;
+      const svgWidth = Math.max(900, totalDays * dayWidth + 260);
+      const svgHeight = headerHeight + (tasksWithDates.length * rowHeight) + 40;
+
+      // Días y cabecera
+      let daysHeaderHTML = '';
+      for (let i = 0; i < totalDays; i++) {
+        const curD = new Date(minDate.getTime() + i * 86400000);
+        const x = 240 + i * dayWidth;
+        const isToday = curD.toDateString() === now.toDateString();
+        daysHeaderHTML += `
+          <line x1="${x}" y1="0" x2="${x}" y2="${svgHeight}" stroke="${isToday ? 'rgba(79, 70, 229, 0.4)' : 'rgba(255,255,255,0.05)'}" stroke-width="${isToday ? 2 : 1}"/>
+          <text x="${x + dayWidth / 2}" y="30" fill="${isToday ? '#818cf8' : 'var(--text-dim)'}" font-size="11" text-anchor="middle" font-weight="${isToday ? 'bold' : 'normal'}">${curD.getDate()}/${curD.getMonth() + 1}</text>
+        `;
+      }
+
+      // Tareas barras
+      let tasksRowsHTML = '';
+      tasksWithDates.forEach((task, index) => {
+        const y = headerHeight + index * rowHeight;
+        const project = appData.projects.find(p => p.id === task.projectId);
+        const taskDue = new Date(task.dueDate);
+        const taskStart = task.startDate ? new Date(task.startDate) : new Date(taskDue.getTime() - 3 * 86400000);
+
+        const startDiffDays = Math.max(0, (taskStart - minDate) / (1000 * 60 * 60 * 24));
+        const durationDays = Math.max(1, (taskDue - taskStart) / (1000 * 60 * 60 * 24));
+
+        const barX = 240 + (startDiffDays * dayWidth);
+        const barW = Math.max(dayWidth, durationDays * dayWidth);
+        const barColor = isTaskBlocked(task) ? 'var(--blocked)' : (task.status === 'completada' ? 'var(--success)' : (task.status === 'completada_avisos' ? 'var(--warning)' : (project ? project.color : 'var(--primary)')));
+
+        tasksRowsHTML += `
+          <rect x="0" y="${y}" width="${svgWidth}" height="${rowHeight}" fill="${index % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent'}"/>
+          <text x="16" y="${y + 26}" fill="var(--text-main)" font-size="12" font-weight="600" cursor="pointer" onclick="openEditTaskModal('${task.id}')">${task.code} - ${escapeHTML(task.title.substring(0, 24))}</text>
+          
+          <!-- Barra de Gantt -->
+          <rect x="${barX}" y="${y + 10}" width="${barW}" height="22" rx="4" fill="${barColor}" opacity="0.85" cursor="pointer" onclick="openEditTaskModal('${task.id}')">
+            <title>${task.code}: ${escapeHTML(task.title)} (Vence: ${task.dueDate})</title>
+          </rect>
+          <text x="${barX + 8}" y="${y + 25}" fill="#ffffff" font-size="10" font-weight="600" pointer-events="none">${escapeHTML(task.assignedTo ? '@' + task.assignedTo : '')}</text>
+        `;
+      });
+
+      // Hitos de Reuniones en el Gantt
+      let meetingsMilestonesHTML = '';
+      appData.meetings.forEach(meet => {
+        if (!meet.date) return;
+        const mDate = new Date(meet.date);
+        if (mDate >= minDate && mDate <= maxDate) {
+          const diff = (mDate - minDate) / (1000 * 60 * 60 * 24);
+          const x = 240 + diff * dayWidth;
+          meetingsMilestonesHTML += `
+            <line x1="${x}" y1="0" x2="${x}" y2="${svgHeight}" stroke="#c084fc" stroke-dasharray="3,3" stroke-width="1.5"/>
+            <polygon points="${x},10 ${x+8},22 ${x},34 ${x-8},22" fill="#a855f7" cursor="pointer" onclick="openEditMeetingModal('${meet.id}')">
+              <title>Reunión: ${escapeHTML(meet.title)} (${formatDateTime(meet.date)})</title>
+            </polygon>
+          `;
+        }
+      });
+
+      container.innerHTML = `
+        <svg width="${svgWidth}" height="${svgHeight}" style="font-family:var(--font-main);">
+          <!-- Encabezado y Guías de Días -->
+          <rect x="0" y="0" width="240" height="${headerHeight}" fill="var(--bg-card)"/>
+          <text x="16" y="30" fill="var(--text-dim)" font-size="11" font-weight="700">TAREA / COMPROMISO</text>
+          ${daysHeaderHTML}
+          ${tasksRowsHTML}
+          ${meetingsMilestonesHTML}
+        </svg>
+      `;
+    }
+
+    /* ==========================================================================
+       RENDERIZADO: 3. MAPA DE BLOQUEOS Y DEPENDENCIAS (GRAFO)
+       ========================================================================== */
+    function renderDependenciesView() {
+      const container = document.getElementById('dependencies-nodes-container');
+      if (!container) return;
+
+      const activeTasks = filteredTasksCache;
+
+      if (activeTasks.length === 0) {
+        const msg = appData.tasks.length === 0
+          ? 'No hay tareas registradas en el sistema.'
+          : 'No se encontraron tareas que coincidan con la búsqueda o filtros activos.';
+        container.innerHTML = `
+          <div style="grid-column:1 / -1; width:100%; padding:48px 24px; text-align:center; color:var(--text-dim); background:var(--bg-surface); border-radius:var(--radius-lg); border:1px dashed var(--border-subtle);">
+            <div>${msg}</div>
+            ${appData.tasks.length > 0 ? '<button type="button" class="btn btn-secondary" style="margin-top:12px; font-size:0.8rem;" onclick="clearAllFilters()">Limpiar filtros</button>' : ''}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = activeTasks.map(task => {
+        const isBlocked = isTaskBlocked(task);
+        const blockers = getBlockersInfo(task);
+        const blockedByThis = getTasksBlockedBy(task.id);
+        const isCriticalBottleneck = blockedByThis.length >= 2 && task.status !== 'completada';
+
+        return `
+          <div class="dependency-node-card ${isCriticalBottleneck ? 'critical-bottleneck' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="card-code">${task.code}</span>
+              <span class="badge badge-priority-${task.priority}">${task.priority.toUpperCase()}</span>
+            </div>
+
+            <div style="font-weight:700; font-size:0.92rem; color:var(--text-main);">${escapeHTML(task.title)}</div>
+
+            <!-- Tareas que la bloquean -->
+            <div style="background:var(--bg-surface); padding:8px 10px; border-radius:var(--radius-sm); font-size:0.78rem;">
+              <div style="color:var(--text-dim); margin-bottom:4px; font-weight:600;">🔒 Depende de (Bloqueada por):</div>
+              ${blockers.length === 0 ? '<span style="color:var(--text-muted);">Sin dependencias directas</span>' : blockers.map(b => `
+                <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                  <span>${b.status === 'completada' ? '✅' : '🛑'}</span>
+                  <a href="#" onclick="openEditTaskModal('${b.id}'); return false;" style="color:${b.status === 'completada' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- Tareas que esta tarea bloquea -->
+            <div style="background:var(--bg-surface); padding:8px 10px; border-radius:var(--radius-sm); font-size:0.78rem;">
+              <div style="color:var(--text-dim); margin-bottom:4px; font-weight:600;">⚠️ Tareas a las que bloquea el paso:</div>
+              ${blockedByThis.length === 0 ? '<span style="color:var(--text-muted);">No bloquea a ninguna otra tarea</span>' : blockedByThis.map(b => `
+                <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                  <span>⏳</span>
+                  <a href="#" onclick="openEditTaskModal('${b.id}'); return false;" style="color:#fbbf24; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
+                </div>
+              `).join('')}
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.75rem;">
+              <span class="badge ${task.status === 'completada' ? 'badge-priority-baja' : (task.status === 'completada_avisos' ? 'badge-warning-completed' : 'badge-blocked')}">${task.status.replace('_', ' ').toUpperCase()}</span>
+              <button class="btn btn-secondary" style="font-size:0.72rem; padding:3px 8px;" onclick="openEditTaskModal('${task.id}')">Editar Tarea</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ==========================================================================
+       RENDERIZADO: 4. CALENDARIO MENSUAL
+       ========================================================================== */
+    let currentCalendarDate = new Date();
+
+    function renderCalendarView() {
+      const labelEl = document.getElementById('calendar-month-label');
+      const gridEl = document.getElementById('calendar-days-grid');
+      if (!labelEl || !gridEl) return;
+
+      const year = currentCalendarDate.getFullYear();
+      const month = currentCalendarDate.getMonth();
+
+      const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      labelEl.textContent = `${monthNames[month]} ${year}`;
+
+      // Primer día del mes (0 = domingo, 1 = lunes...)
+      const firstDay = new Date(year, month, 1);
+      let startingDay = firstDay.getDay() - 1;
+      if (startingDay === -1) startingDay = 6; // ajuste para empezar en lunes
+
+      const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+      const today = new Date();
+
+      let daysHTML = '';
+
+      // Celdas vacías iniciales
+      for (let i = 0; i < startingDay; i++) {
+        daysHTML += `<div class="calendar-day-cell" style="opacity:0.3; background:transparent;"></div>`;
+      }
+
+      // Celdas del mes
+      for (let day = 1; day <= totalDaysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+
+        // Tareas que vencen hoy (filtradas según búsqueda y proyectos en curso)
+        const dayTasks = filteredTasksCache.filter(t => t.dueDate === dateStr);
+
+        // Reuniones programadas hoy (solo si tienen al menos un proyecto en curso o son generales)
+        const dayMeetings = appData.meetings.filter(m => m.date && m.date.startsWith(dateStr) && isMeetingActive(m));
+
+        daysHTML += `
+          <div class="calendar-day-cell ${isToday ? 'is-today' : ''}">
+            <div class="day-num">${day}</div>
+            
+            ${dayMeetings.map(m => `
+              <div class="calendar-item-chip calendar-item-meeting" title="Reunión: ${escapeHTML(m.title)}" onclick="openEditMeetingModal('${m.id}')">
+                🤝 ${escapeHTML(m.title)}
+              </div>
+            `).join('')}
+
+            ${dayTasks.map(t => `
+              <div class="calendar-item-chip calendar-item-task" title="Tarea: ${escapeHTML(t.title)}" onclick="openEditTaskModal('${t.id}')">
+                📌 [${t.code}] ${escapeHTML(t.title)}
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      gridEl.innerHTML = daysHTML;
+    }
+
+    /* ==========================================================================
+       RENDERIZADO: 5. TABLA / LISTA DE TAREAS
+       ========================================================================== */
+    function renderTableView() {
+      const tbody = document.getElementById('table-tasks-tbody');
+      if (!tbody) return;
+
+      if (filteredTasksCache.length === 0) {
+        const msg = appData.tasks.length === 0
+          ? 'No hay tareas registradas en la aplicación.'
+          : 'No se encontraron tareas que coincidan con la búsqueda o filtros activos.';
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" style="text-align:center; padding:40px 16px; color:var(--text-muted);">
+              <div>${msg}</div>
+              ${appData.tasks.length > 0 ? '<button type="button" class="btn btn-secondary" style="margin-top:10px; font-size:0.78rem;" onclick="clearAllFilters()">Limpiar filtros</button>' : ''}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filteredTasksCache.map(task => {
+        const project = appData.projects.find(p => p.id === task.projectId);
+        const blockers = getBlockersInfo(task);
+        return `
+          <tr>
+            <td style="font-family:var(--font-mono); font-weight:700;">${task.code}</td>
+            <td>
+              <div style="font-weight:600; cursor:pointer;" onclick="openEditTaskModal('${task.id}')">${escapeHTML(task.title)}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${escapeHTML((task.description || '').substring(0, 60))}</div>
+            </td>
+            <td>
+              ${project ? `<span class="badge" style="background:${project.color}22; color:${project.color}; border:1px solid ${project.color}44;">${escapeHTML(project.name)}</span>` : '<span style="color:var(--text-dim);">Transversal</span>'}
+            </td>
+            <td>${task.assignedTo ? `@${escapeHTML(task.assignedTo)}` : '<span style="color:var(--text-dim);">-</span>'}</td>
+            <td><span class="badge badge-priority-${task.priority}">${task.priority.toUpperCase()}</span></td>
+            <td><span class="badge" style="background:var(--bg-card);">${task.status.replace('_', ' ').toUpperCase()}</span></td>
+            <td>
+              ${blockers.length > 0 ? `<span style="color:var(--danger); font-size:0.75rem;">🔒 Por ${blockers.map(b=>b.code).join(', ')}</span>` : '<span style="color:var(--text-dim); font-size:0.75rem;">Libre</span>'}
+            </td>
+            <td>${task.dueDate ? formatDate(task.dueDate) : '-'}</td>
+            <td>
+              <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="openEditTaskModal('${task.id}')">Editar</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    /* ==========================================================================
+       RENDERIZADO: 6. VISTA REUNIONES Y ACTAS
+       ========================================================================== */
+    function renderMeetingsView() {
+      const container = document.getElementById('meetings-grid-container');
+      if (!container) return;
+
+      const rawQ = (document.getElementById('global-search').value || '').trim();
+      const normQ = normalizeSearchText(rawQ);
+      const tokens = normQ ? normQ.split(/\s+/).map(t => t.replace(/^@/, '')).filter(Boolean) : [];
+
+      let activeMeetings = appData.meetings.filter(m => isMeetingActive(m));
+
+      if (tokens.length > 0) {
+        activeMeetings = activeMeetings.filter(m => {
+          const prjNames = (m.projectIds || []).map(pid => {
+            const p = appData.projects.find(prj => prj.id === pid);
+            return p ? `${p.name} ${p.code}` : '';
+          }).join(' ');
+          const fullMeetText = normalizeSearchText(`${m.title || ''} ${m.location || ''} ${m.notes || ''} ${(m.attendees || []).join(' ')} ${prjNames}`);
+          return tokens.every(token => fullMeetText.includes(token));
+        });
+      }
+
+      if (activeMeetings.length === 0) {
+        const msg = appData.meetings.length === 0
+          ? '🤝 No hay reuniones activas asociadas a proyectos en curso.'
+          : '🔍 No se encontraron reuniones que coincidan con la búsqueda.';
+        container.innerHTML = `
+          <div style="grid-column:1 / -1; padding:48px 20px; text-align:center; color:var(--text-dim); background:var(--bg-surface); border-radius:var(--radius-lg); border:1px dashed var(--border-subtle);">
+            <div>${msg}</div>
+            ${appData.meetings.length > 0 ? '<button type="button" class="btn btn-secondary" style="margin-top:12px; font-size:0.8rem;" onclick="clearAllFilters()">Limpiar búsqueda</button>' : ''}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = activeMeetings.map(meet => {
+        const projectsLinked = (meet.projectIds || []).map(pid => appData.projects.find(p => p.id === pid)).filter(p => p && p.status !== 'cerrado');
+        const actionItems = appData.tasks.filter(t => t.meetingId === meet.id && isProjectActive(t.projectId));
+
+        return `
+          <div class="meeting-card">
+            <div class="meeting-card-header">
+              <div>
+                <div class="meeting-title">${escapeHTML(meet.title)}</div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">
+                  📅 ${formatDateTime(meet.date)} ${meet.location ? ` | 📍 ${escapeHTML(meet.location)}` : ''}
+                </div>
+              </div>
+              <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="openEditMeetingModal('${meet.id}')">Acta / Notas</button>
+            </div>
+
+            <!-- Proyectos vinculados -->
+            <div class="meeting-projects-list">
+              ${projectsLinked.length === 0 ? '<span class="badge" style="background:var(--bg-card);">General / Sin Proyecto específico</span>' : projectsLinked.map(p => `
+                <span class="badge" style="background:${p.color}22; color:${p.color}; border:1px solid ${p.color}44;">● ${escapeHTML(p.name)}</span>
+              `).join('')}
+            </div>
+
+            <!-- Asistentes -->
+            <div class="meeting-attendees-box">
+              <span style="font-size:0.75rem; color:var(--text-dim);">Asistentes:</span>
+              ${(meet.attendees || []).map(a => `<span class="member-tag">${escapeHTML(a)}</span>`).join('')}
+            </div>
+
+            <!-- Notas de la reunión -->
+            ${meet.notes ? `<div class="meeting-notes-preview">${escapeHTML(meet.notes)}</div>` : '<div style="font-size:0.75rem; color:var(--text-dim); font-style:italic;">Sin notas registradas.</div>'}
+
+            <!-- Tareas resultantes -->
+            <div style="border-top:1px solid var(--border-subtle); padding-top:10px; font-size:0.78rem;">
+              <span style="font-weight:600; color:var(--text-main);">Compromisos / Tareas resultantes (${actionItems.length}):</span>
+              ${actionItems.length === 0 ? '<span style="color:var(--text-dim); display:block; margin-top:2px;">No se crearon tareas a partir de esta reunión.</span>' : actionItems.map(act => `
+                <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                  <span onclick="openEditTaskModal('${act.id}')" style="cursor:pointer; color:var(--primary); font-weight:600;">[${act.code}] ${escapeHTML(act.title)}</span>
+                  <span class="badge badge-priority-${act.priority}">${act.status}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ==========================================================================
+       RENDERIZADO: 7. VISTA PROYECTOS (EN CURSO vs APARTADO ESPECIAL CERRADOS)
+       ========================================================================== */
+    function renderProjectsView() {
+      const container = document.getElementById('projects-grid-container');
+      if (!container) return;
+
+      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
+      const closedProjects = appData.projects.filter(p => p.status === 'cerrado');
+
+      const countActiveEl = document.getElementById('count-projects-active');
+      const countClosedEl = document.getElementById('count-projects-closed');
+      if (countActiveEl) countActiveEl.textContent = activeProjects.length;
+      if (countClosedEl) countClosedEl.textContent = closedProjects.length;
+
+      const rawQ = (document.getElementById('global-search').value || '').trim();
+      const normQ = normalizeSearchText(rawQ);
+      const tokens = normQ ? normQ.split(/\s+/).map(t => t.replace(/^@/, '')).filter(Boolean) : [];
+
+      let projectsToShow = currentProjectSubTab === 'en_curso' ? activeProjects : closedProjects;
+
+      if (tokens.length > 0) {
+        projectsToShow = projectsToShow.filter(prj => {
+          const fullPrjText = normalizeSearchText(`${prj.name || ''} ${prj.code || ''} ${prj.description || ''}`);
+          return tokens.every(token => fullPrjText.includes(token));
+        });
+      }
+
+      if (projectsToShow.length === 0) {
+        const msg = (currentProjectSubTab === 'en_curso' ? activeProjects.length : closedProjects.length) === 0
+          ? (currentProjectSubTab === 'en_curso' 
+              ? '📂 No hay proyectos activos en curso. Puedes crear uno nuevo o reactivar uno del apartado de cerrados.' 
+              : '📁 No hay proyectos en el apartado de cerrados.')
+          : '🔍 No se encontraron proyectos que coincidan con la búsqueda.';
+        container.innerHTML = `
+          <div style="grid-column:1 / -1; padding:48px 20px; text-align:center; color:var(--text-dim); background:var(--bg-surface); border-radius:var(--radius-lg); border:1px dashed var(--border-subtle);">
+            <div>${msg}</div>
+            ${tokens.length > 0 ? '<button type="button" class="btn btn-secondary" style="margin-top:12px; font-size:0.8rem;" onclick="clearAllFilters()">Limpiar búsqueda</button>' : ''}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = projectsToShow.map(prj => {
+        const isClosed = prj.status === 'cerrado';
+        const prjTasks = appData.tasks.filter(t => t.projectId === prj.id);
+        const completed = prjTasks.filter(t => t.status === 'completada' || t.status === 'completada_avisos').length;
+        const total = prjTasks.length;
+        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        const meetingsCount = appData.meetings.filter(m => (m.projectIds || []).includes(prj.id)).length;
+
+        return `
+          <div class="meeting-card" style="border-top:4px solid ${isClosed ? 'var(--text-dim)' : prj.color}; opacity:${isClosed ? '0.88' : '1'};">
+            <div class="meeting-card-header">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="card-code">${prj.code}</span>
+                  ${isClosed 
+                    ? `<span class="badge" style="background:var(--danger-light); color:var(--danger); border:1px solid var(--danger);">🔒 CERRADO</span>` 
+                    : `<span class="badge" style="background:var(--success-light); color:var(--success); border:1px solid var(--success-border);">🟢 EN CURSO</span>`}
+                </div>
+                <div class="meeting-title" style="margin-top:4px;">${escapeHTML(prj.name)}</div>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="openEditProjectModal('${prj.id}')">Editar</button>
+                ${isClosed ? `
+                  <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:4px 10px; background:var(--success); border-color:var(--success);" onclick="toggleProjectStatus('${prj.id}')" title="Reactivar y mostrar en tableros">
+                    🔄 Volver a poner en curso
+                  </button>
+                ` : `
+                  <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px; color:var(--danger);" onclick="toggleProjectStatus('${prj.id}')" title="Cerrar y archivar en el apartado especial">
+                    🔒 Cerrar
+                  </button>
+                `}
+              </div>
+            </div>
+
+            <p style="font-size:0.82rem; color:var(--text-muted); line-height:1.45;">${escapeHTML(prj.description || 'Sin descripción.')}</p>
+
+            <div class="subtasks-progress-box">
+              <div class="subtasks-label">
+                <span>${isClosed ? 'Progreso histórico final' : 'Progreso global del proyecto'}</span>
+                <span style="font-weight:700; color:${isClosed ? 'var(--text-dim)' : prj.color};">${pct}%</span>
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" style="width:${pct}%; background:${isClosed ? 'var(--text-dim)' : prj.color};"></div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border-subtle); padding-top:12px; font-size:0.8rem; color:var(--text-muted);">
+              <span>📌 ${total} Tareas ${isClosed ? 'archivadas' : 'vinculadas'}</span>
+              <span>🤝 ${meetingsCount} Reuniones</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ==========================================================================
+       RENDERIZADO: 8. DASHBOARD & MÉTRICAS (SVG NATIVO)
+       ========================================================================== */
+    function renderDashboardCharts() {
+      // Filtrar solo tareas y reuniones activas (proyectos en curso o transversales)
+      const activeTasks = appData.tasks.filter(t => isProjectActive(t.projectId));
+      const activeMeetings = appData.meetings.filter(m => isMeetingActive(m));
+
+      const totalTasks = activeTasks.length;
+      const completedTasks = activeTasks.filter(t => t.status === 'completada').length;
+      const warningTasks = activeTasks.filter(t => t.status === 'completada_avisos').length;
+      const blockedTasks = activeTasks.filter(t => isTaskBlocked(t) || t.status === 'bloqueada').length;
+      const actionsFromMeetings = activeTasks.filter(t => t.meetingId).length;
+
+      document.getElementById('kpi-total-tasks').textContent = totalTasks;
+      document.getElementById('kpi-completed-tasks').textContent = completedTasks;
+      document.getElementById('kpi-completed-rate').textContent = totalTasks > 0 ? `${Math.round(((completedTasks + warningTasks) / totalTasks) * 100)}% tasa de avance` : '0% tasa de avance';
+      document.getElementById('kpi-warning-tasks').textContent = warningTasks;
+      document.getElementById('kpi-blocked-tasks').textContent = blockedTasks;
+      document.getElementById('kpi-meetings-total').textContent = activeMeetings.length;
+      document.getElementById('kpi-actions-from-meetings').textContent = `${actionsFromMeetings} acuerdos surgidos`;
+
+      // 1. Gráfico Circular Donut (SVG)
+      const donutContainer = document.getElementById('donut-chart-container');
+      if (donutContainer) {
+        if (totalTasks === 0) {
+          donutContainer.innerHTML = `<span style="color:var(--text-dim);">Sin datos de tareas para graficar</span>`;
+        } else {
+          const statuses = [
+            { label: 'Completadas', count: completedTasks, color: '#10b981' },
+            { label: 'Completadas c/ Avisos', count: warningTasks, color: '#f59e0b' },
+            { label: 'En Progreso', count: appData.tasks.filter(t => t.status === 'en_progreso').length, color: '#3b82f6' },
+            { label: 'En Revisión', count: appData.tasks.filter(t => t.status === 'en_revision').length, color: '#a855f7' },
+            { label: 'Bloqueadas', count: blockedTasks, color: '#ec4899' },
+            { label: 'Pendientes', count: appData.tasks.filter(t => t.status === 'pendiente').length, color: '#64748b' }
+          ];
+
+          let accumulatedAngle = 0;
+          const radius = 70;
+          const strokeWidth = 26;
+          const center = 100;
+          const circumference = 2 * Math.PI * radius;
+
+          let slicesHTML = '';
+          statuses.forEach(s => {
+            if (s.count === 0) return;
+            const portion = s.count / totalTasks;
+            const strokeDasharray = `${portion * circumference} ${circumference}`;
+            const strokeDashoffset = -accumulatedAngle * circumference;
+            slicesHTML += `
+              <circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="${s.color}" stroke-width="${strokeWidth}" stroke-dasharray="${strokeDasharray}" stroke-dashoffset="${strokeDashoffset}"/>
+            `;
+            accumulatedAngle += portion;
+          });
+
+          let legendHTML = statuses.map(s => `
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem;">
+              <span style="width:10px; height:10px; border-radius:50%; background:${s.color};"></span>
+              <span>${s.label}: <strong>${s.count}</strong></span>
+            </div>
+          `).join('');
+
+          donutContainer.innerHTML = `
+            <div style="display:flex; align-items:center; gap:30px; flex-wrap:wrap; justify-content:center;">
+              <svg width="200" height="200" style="transform:rotate(-90deg);">
+                ${slicesHTML}
+                <text x="100" y="-95" transform="rotate(90)" fill="var(--text-main)" font-size="22" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${totalTasks}</text>
+              </svg>
+              <div style="display:flex; flex-direction:column; gap:6px;">${legendHTML}</div>
+            </div>
+          `;
+        }
+      }
+
+      // 2. Gráfico de barras de carga de trabajo por Miembro (@Nombre)
+      const workloadContainer = document.getElementById('workload-bars-container');
+      if (workloadContainer) {
+        if (appData.members.length === 0) {
+          workloadContainer.innerHTML = `<span style="color:var(--text-dim);">No hay miembros registrados aún. Escribe @Nombre para añadirlos.</span>`;
+        } else {
+          // Contabilizar tareas por miembro
+          const memberStats = appData.members.map(m => {
+            const memberTasks = appData.tasks.filter(t => (t.assignedTo || '').toLowerCase() === m.toLowerCase());
+            const done = memberTasks.filter(t => t.status === 'completada' || t.status === 'completada_avisos').length;
+            const active = memberTasks.length - done;
+            return { name: m, total: memberTasks.length, done, active };
+          }).sort((a, b) => b.total - a.total);
+
+          const maxTasks = Math.max(1, ...memberStats.map(m => m.total));
+
+          workloadContainer.innerHTML = memberStats.map(m => {
+            const pct = Math.round((m.total / maxTasks) * 100);
+            return `
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+                  <span style="font-weight:600;">@${escapeHTML(m.name)}</span>
+                  <span style="color:var(--text-muted);">${m.active} activas / ${m.done} hechas (${m.total} total)</span>
+                </div>
+                <div class="progress-bar-track" style="height:10px;">
+                  <div class="progress-bar-fill" style="width:${pct}%; background:linear-gradient(90deg, #6366f1, #a855f7);"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    /* ==========================================================================
+       MANEJADORES DE MODALES Y FORMULARIOS
+       ========================================================================== */
+    function openModal(modalId) {
+      const el = document.getElementById(modalId);
+      if (el) el.classList.add('open');
+    }
+
+    function closeModal(modalId) {
+      const el = document.getElementById(modalId);
+      if (el) el.classList.remove('open');
+    }
+
+    /* TAREA: CREAR / EDITAR */
+    let currentTaskBlockedByBuffer = [];
+    let currentTaskBlocksBuffer = [];
+
+    function openNewTaskModal() {
+      document.getElementById('form-task').reset();
+      document.getElementById('task-id').value = '';
+      document.getElementById('modal-task-title').textContent = 'Nueva Tarea';
+      currentTaskSubtasksBuffer = [];
+      currentTaskBlockedByBuffer = [];
+      currentTaskBlocksBuffer = [];
+
+      const btnDelete = document.getElementById('btn-delete-task');
+      if (btnDelete) btnDelete.style.display = 'none';
+
+      populateTaskFormSelectors(null);
+      renderTaskDependenciesLists(null);
+      renderSubtasksEditorList();
+      openModal('modal-task');
+    }
+
+    function openEditTaskModal(taskId) {
+      const task = appData.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      document.getElementById('task-id').value = task.id;
+      document.getElementById('modal-task-title').textContent = `Editar Tarea: ${task.code}`;
+      document.getElementById('task-title-input').value = task.title;
+      document.getElementById('task-desc-input').value = task.description || '';
+      document.getElementById('task-assignee-input').value = task.assignedTo ? `@${task.assignedTo}` : '';
+      document.getElementById('task-priority-select').value = task.priority;
+      document.getElementById('task-status-select').value = task.status;
+      document.getElementById('task-due-date').value = task.dueDate || '';
+
+      populateTaskFormSelectors(task.id);
+      document.getElementById('task-project-select').value = task.projectId || '';
+      document.getElementById('task-meeting-select').value = task.meetingId || '';
+
+      // Cargar buffers de dependencias bidireccionales
+      currentTaskBlockedByBuffer = Array.isArray(task.blockedBy) ? [...task.blockedBy] : [];
+      currentTaskBlocksBuffer = appData.tasks
+        .filter(t => t.blockedBy && t.blockedBy.includes(task.id))
+        .map(t => t.id);
+
+      renderTaskDependenciesLists(task.id);
+
+      const btnDelete = document.getElementById('btn-delete-task');
+      if (btnDelete) btnDelete.style.display = 'inline-flex';
+
+      currentTaskSubtasksBuffer = JSON.parse(JSON.stringify(task.subtasks || []));
+      renderSubtasksEditorList();
+      openModal('modal-task');
+    }
+
+    function renderTaskDependenciesLists(currentTaskId) {
+      const blockedByContainer = document.getElementById('task-blocked-by-list');
+      const blocksContainer = document.getElementById('task-blocks-list');
+      const addBlockerSelect = document.getElementById('task-add-blocker-select');
+      const addBlockingSelect = document.getElementById('task-add-blocking-select');
+      if (!blockedByContainer || !blocksContainer) return;
+
+      // 1. Renderizar lista "Bloqueada por otras tareas"
+      const blockerTasks = currentTaskBlockedByBuffer
+        .map(id => appData.tasks.find(t => t.id === id))
+        .filter(Boolean);
+
+      if (blockerTasks.length === 0) {
+        blockedByContainer.innerHTML = `<div class="dep-empty-hint">Sin dependencias directas</div>`;
+      } else {
+        blockedByContainer.innerHTML = blockerTasks.map(t => {
+          const isDone = t.status === 'completada' || t.status === 'completada_avisos';
+          const statusIcon = isDone ? '✅' : '🔒';
+          return `
+            <div class="dep-item-row" title="Doble clic para abrir esta tarea" ondblclick="jumpToTaskFromModal('${t.id}')">
+              <div class="dep-item-info">
+                <span>${statusIcon}</span>
+                <span class="dep-item-code">[${t.code}]</span>
+                <span class="dep-item-title" title="${escapeHTML(t.title)}">${escapeHTML(t.title)}</span>
+              </div>
+              <button type="button" class="dep-item-remove-btn" title="Quitar dependencia" onclick="event.stopPropagation(); removeBlockerTask('${t.id}')">&times;</button>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 2. Renderizar lista "Bloquea a"
+      const blockedTasks = currentTaskBlocksBuffer
+        .map(id => appData.tasks.find(t => t.id === id))
+        .filter(Boolean);
+
+      if (blockedTasks.length === 0) {
+        blocksContainer.innerHTML = `<div class="dep-empty-hint">No bloquea a ninguna otra tarea</div>`;
+      } else {
+        blocksContainer.innerHTML = blockedTasks.map(t => {
+          return `
+            <div class="dep-item-row" title="Doble clic para abrir esta tarea" ondblclick="jumpToTaskFromModal('${t.id}')">
+              <div class="dep-item-info">
+                <span>⏳</span>
+                <span class="dep-item-code" style="color:#f59e0b;">[${t.code}]</span>
+                <span class="dep-item-title" title="${escapeHTML(t.title)}">${escapeHTML(t.title)}</span>
+              </div>
+              <button type="button" class="dep-item-remove-btn" title="Quitar bloqueo (desvincular)" onclick="event.stopPropagation(); removeBlockedTask('${t.id}')">&times;</button>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Poblar select de tareas bloqueantes disponibles
+      if (addBlockerSelect) {
+        const availableBlockers = appData.tasks.filter(t => 
+          t.id !== currentTaskId && 
+          !currentTaskBlockedByBuffer.includes(t.id) &&
+          !currentTaskBlocksBuffer.includes(t.id)
+        );
+        addBlockerSelect.innerHTML = `<option value="">-- Añadir bloqueante --</option>` +
+          availableBlockers.map(t => `<option value="${t.id}">[${t.code}] ${escapeHTML(t.title)}</option>`).join('');
+      }
+
+      // 4. Poblar select de tareas a bloquear disponibles
+      if (addBlockingSelect) {
+        const availableToBlock = appData.tasks.filter(t => 
+          t.id !== currentTaskId && 
+          !currentTaskBlocksBuffer.includes(t.id) &&
+          !currentTaskBlockedByBuffer.includes(t.id)
+        );
+        addBlockingSelect.innerHTML = `<option value="">-- Añadir a quien bloquea --</option>` +
+          availableToBlock.map(t => `<option value="${t.id}">[${t.code}] ${escapeHTML(t.title)}</option>`).join('');
+      }
+    }
+
+    function jumpToTaskFromModal(targetTaskId) {
+      const currentTaskId = document.getElementById('task-id').value;
+      if (currentTaskId) {
+        saveTaskFormQuick(currentTaskId);
+      } else {
+        // Si era una nueva tarea y el usuario escribió título, guardarla primero
+        const title = document.getElementById('task-title-input').value.trim();
+        if (title) {
+          const nextNum = appData.tasks.length + 101;
+          const newTaskId = 'tsk-' + Date.now();
+          const newTask = {
+            id: newTaskId,
+            code: 'TSK-' + nextNum,
+            title,
+            description: document.getElementById('task-desc-input').value.trim(),
+            assignedTo: (document.getElementById('task-assignee-input').value.trim() || '').replace(/^@/, '').trim(),
+            projectId: document.getElementById('task-project-select').value || null,
+            meetingId: document.getElementById('task-meeting-select').value || null,
+            priority: document.getElementById('task-priority-select').value,
+            status: document.getElementById('task-status-select').value,
+            startDate: new Date().toISOString().split('T')[0],
+            dueDate: document.getElementById('task-due-date').value || null,
+            blockedBy: [...currentTaskBlockedByBuffer],
+            subtasks: currentTaskSubtasksBuffer
+          };
+          appData.tasks.push(newTask);
+          currentTaskBlocksBuffer.forEach(bId => {
+            const bTask = appData.tasks.find(t => t.id === bId);
+            if (bTask) {
+              if (!bTask.blockedBy) bTask.blockedBy = [];
+              if (!bTask.blockedBy.includes(newTaskId)) bTask.blockedBy.push(newTaskId);
+            }
+          });
+          saveData();
+          updateAllViewCounts();
+          renderActiveView();
+        }
+      }
+      openEditTaskModal(targetTaskId);
+    }
+
+    function removeBlockerTask(blockerId) {
+      currentTaskBlockedByBuffer = currentTaskBlockedByBuffer.filter(id => id !== blockerId);
+      const currentTaskId = document.getElementById('task-id').value;
+      if (currentTaskId) {
+        const task = appData.tasks.find(t => t.id === currentTaskId);
+        if (task) {
+          task.blockedBy = [...currentTaskBlockedByBuffer];
+          saveData();
+          updateAllViewCounts();
+          renderActiveView();
+        }
+      }
+      renderTaskDependenciesLists(currentTaskId);
+      showToast('Dependencia eliminada', 'info');
+    }
+
+    function removeBlockedTask(targetTaskId) {
+      currentTaskBlocksBuffer = currentTaskBlocksBuffer.filter(id => id !== targetTaskId);
+      const currentTaskId = document.getElementById('task-id').value;
+      
+      const targetTask = appData.tasks.find(t => t.id === targetTaskId);
+      if (targetTask && currentTaskId) {
+        targetTask.blockedBy = (targetTask.blockedBy || []).filter(id => id !== currentTaskId);
+        if (!isTaskBlocked(targetTask) && targetTask.status === 'bloqueada') {
+          targetTask.status = 'pendiente';
+        }
+        saveData();
+        updateAllViewCounts();
+        renderActiveView();
+      }
+      renderTaskDependenciesLists(currentTaskId);
+      showToast(`Bloqueo quitado para [${targetTask ? targetTask.code : 'Tarea'}]`, 'info');
+    }
+
+    function addBlockerTaskFromSelect() {
+      const select = document.getElementById('task-add-blocker-select');
+      const blockerId = select ? select.value : '';
+      if (!blockerId) return;
+
+      if (!currentTaskBlockedByBuffer.includes(blockerId)) {
+        currentTaskBlockedByBuffer.push(blockerId);
+        const currentTaskId = document.getElementById('task-id').value;
+        if (currentTaskId) {
+          const task = appData.tasks.find(t => t.id === currentTaskId);
+          if (task) {
+            task.blockedBy = [...currentTaskBlockedByBuffer];
+            saveData();
+            updateAllViewCounts();
+            renderActiveView();
+          }
+        }
+        renderTaskDependenciesLists(currentTaskId);
+        showToast('Dependencia añadida', 'success');
+      }
+    }
+
+    function addBlockedTaskFromSelect() {
+      const select = document.getElementById('task-add-blocking-select');
+      const targetId = select ? select.value : '';
+      if (!targetId) return;
+
+      if (!currentTaskBlocksBuffer.includes(targetId)) {
+        currentTaskBlocksBuffer.push(targetId);
+        const currentTaskId = document.getElementById('task-id').value;
+        if (currentTaskId) {
+          const targetTask = appData.tasks.find(t => t.id === targetId);
+          if (targetTask) {
+            if (!targetTask.blockedBy) targetTask.blockedBy = [];
+            if (!targetTask.blockedBy.includes(currentTaskId)) {
+              targetTask.blockedBy.push(currentTaskId);
+            }
+            saveData();
+            updateAllViewCounts();
+            renderActiveView();
+          }
+        }
+        renderTaskDependenciesLists(currentTaskId);
+        showToast('Tarea añadida a la lista de bloqueadas', 'success');
+      }
+    }
+
+    function saveTaskFormQuick(currentTaskId) {
+      const task = appData.tasks.find(t => t.id === currentTaskId);
+      if (!task) return;
+
+      const title = document.getElementById('task-title-input').value.trim();
+      if (title) task.title = title;
+      task.description = document.getElementById('task-desc-input').value.trim();
+      
+      const assigneeRaw = document.getElementById('task-assignee-input').value.trim();
+      if (assigneeRaw) {
+        const clean = assigneeRaw.replace(/^@/, '').trim();
+        registerMemberIfNeeded(clean);
+        task.assignedTo = clean;
+      }
+      
+      task.priority = document.getElementById('task-priority-select').value;
+      task.status = document.getElementById('task-status-select').value;
+      task.dueDate = document.getElementById('task-due-date').value || null;
+      task.projectId = document.getElementById('task-project-select').value || null;
+      task.meetingId = document.getElementById('task-meeting-select').value || null;
+      task.blockedBy = [...currentTaskBlockedByBuffer];
+      task.subtasks = currentTaskSubtasksBuffer;
+
+      // Sincronizar tareas que esta tarea bloquea
+      appData.tasks.forEach(t => {
+        if (t.id === task.id) return;
+        if (!t.blockedBy) t.blockedBy = [];
+        const shouldBlock = currentTaskBlocksBuffer.includes(t.id);
+        const isBlocked = t.blockedBy.includes(task.id);
+        if (shouldBlock && !isBlocked) {
+          t.blockedBy.push(task.id);
+        } else if (!shouldBlock && isBlocked) {
+          t.blockedBy = t.blockedBy.filter(bId => bId !== task.id);
+        }
+      });
+
+      saveData();
+      updateAllViewCounts();
+      renderActiveView();
+    }
+
+    function deleteCurrentTask() {
+      const currentTaskId = document.getElementById('task-id').value;
+      if (!currentTaskId) return;
+
+      const task = appData.tasks.find(t => t.id === currentTaskId);
+      const label = task ? `[${task.code}] ${task.title}` : 'esta tarea';
+
+      if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente ${label}?`)) {
+        return;
+      }
+
+      appData.tasks = appData.tasks.filter(t => t.id !== currentTaskId);
+
+      // Quitar de blockedBy de otras tareas
+      appData.tasks.forEach(t => {
+        if (t.blockedBy && t.blockedBy.includes(currentTaskId)) {
+          t.blockedBy = t.blockedBy.filter(bId => bId !== currentTaskId);
+          if (!isTaskBlocked(t) && t.status === 'bloqueada') {
+            t.status = 'pendiente';
+          }
+        }
+      });
+
+      // Quitar de reuniones
+      appData.meetings.forEach(m => {
+        if (m.actionItemIds) {
+          m.actionItemIds = m.actionItemIds.filter(id => id !== currentTaskId);
+        }
+      });
+
+      saveData();
+      updateAllViewCounts();
+      renderActiveView();
+      closeModal('modal-task');
+      showToast('Tarea eliminada correctamente', 'info');
+    }
+
+    function populateTaskFormSelectors(currentTaskId) {
+      // Proyectos (solo proyectos en curso)
+      const prjSelect = document.getElementById('task-project-select');
+      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
+      prjSelect.innerHTML = `<option value="">-- Sin Proyecto (Transversal / General) --</option>` +
+        activeProjects.map(p => `<option value="${p.id}">${escapeHTML(p.name)} (${p.code})</option>`).join('');
+
+      // Si la tarea actual pertenece a un proyecto cerrado, agregarlo como opción deshabilitada para no perder la asociación
+      if (currentTaskId) {
+        const curTask = appData.tasks.find(t => t.id === currentTaskId);
+        if (curTask && curTask.projectId && !activeProjects.some(p => p.id === curTask.projectId)) {
+          const prj = appData.projects.find(p => p.id === curTask.projectId);
+          if (prj) {
+            prjSelect.innerHTML += `<option value="${prj.id}">🔒 ${escapeHTML(prj.name)} (${prj.code}) [Cerrado]</option>`;
+          }
+        }
+      }
+
+      // Reuniones (solo activas)
+      const meetSelect = document.getElementById('task-meeting-select');
+      const activeMeetings = appData.meetings.filter(m => isMeetingActive(m));
+      meetSelect.innerHTML = `<option value="">-- Ninguna --</option>` +
+        activeMeetings.map(m => `<option value="${m.id}">${escapeHTML(m.title)} (${formatDate(m.date)})</option>`).join('');
+    }
+
+    function handleSaveTask(e) {
+      e.preventDefault();
+      const id = document.getElementById('task-id').value;
+      const title = document.getElementById('task-title-input').value.trim();
+      const desc = document.getElementById('task-desc-input').value.trim();
+      const assigneeRaw = document.getElementById('task-assignee-input').value.trim();
+      const projectId = document.getElementById('task-project-select').value || null;
+      const meetingId = document.getElementById('task-meeting-select').value || null;
+      const priority = document.getElementById('task-priority-select').value;
+      let status = document.getElementById('task-status-select').value;
+      const dueDate = document.getElementById('task-due-date').value || null;
+
+      // Auto-registro de personas en asignado y descripción
+      extractAndRegisterMentionsFromText(desc);
+      let cleanAssignee = '';
+      if (assigneeRaw) {
+        cleanAssignee = assigneeRaw.replace(/^@/, '').trim();
+        registerMemberIfNeeded(cleanAssignee);
+      }
+
+      // Reglas de subtareas y completado
+      const subStats = {
+        total: currentTaskSubtasksBuffer.length,
+        done: currentTaskSubtasksBuffer.filter(s => s.completed).length
+      };
+
+      if (status === 'completada' && subStats.total > 0 && subStats.done < subStats.total) {
+        status = 'completada_avisos';
+        showToast('Tarea ajustada a "Completada con Avisos" por subtareas pendientes', 'warning');
+      }
+
+      if (id) {
+        // Editar existente
+        const task = appData.tasks.find(t => t.id === id);
+        if (task) {
+          const oldStatus = task.status;
+          task.title = title;
+          task.description = desc;
+          task.assignedTo = cleanAssignee;
+          task.projectId = projectId;
+          task.meetingId = meetingId;
+          task.priority = priority;
+          task.status = status;
+          task.dueDate = dueDate;
+          task.blockedBy = [...currentTaskBlockedByBuffer];
+          task.subtasks = currentTaskSubtasksBuffer;
+
+          // Sincronizar tareas que esta tarea bloquea
+          appData.tasks.forEach(t => {
+            if (t.id === task.id) return;
+            if (!t.blockedBy) t.blockedBy = [];
+            const shouldBlock = currentTaskBlocksBuffer.includes(t.id);
+            const isBlocked = t.blockedBy.includes(task.id);
+            if (shouldBlock && !isBlocked) {
+              t.blockedBy.push(task.id);
+            } else if (!shouldBlock && isBlocked) {
+              t.blockedBy = t.blockedBy.filter(bId => bId !== task.id);
+            }
+          });
+
+          if (oldStatus !== 'completada' && (status === 'completada' || status === 'completada_avisos')) {
+            checkAndNotifyUnblockedTasks(task);
+          }
+        }
+      } else {
+        // Crear nueva tarea
+        const nextNum = appData.tasks.length + 101;
+        const newTaskId = 'tsk-' + Date.now();
+        const newTask = {
+          id: newTaskId,
+          code: 'TSK-' + nextNum,
+          title,
+          description: desc,
+          assignedTo: cleanAssignee,
+          projectId,
+          meetingId,
+          priority,
+          status,
+          startDate: new Date().toISOString().split('T')[0],
+          dueDate,
+          blockedBy: [...currentTaskBlockedByBuffer],
+          subtasks: currentTaskSubtasksBuffer
+        };
+        appData.tasks.push(newTask);
+
+        // Sincronizar tareas que esta nueva tarea bloquea
+        currentTaskBlocksBuffer.forEach(targetId => {
+          const targetTask = appData.tasks.find(t => t.id === targetId);
+          if (targetTask) {
+            if (!targetTask.blockedBy) targetTask.blockedBy = [];
+            if (!targetTask.blockedBy.includes(newTaskId)) {
+              targetTask.blockedBy.push(newTaskId);
+            }
+          }
+        });
+      }
+
+      saveData();
+      closeModal('modal-task');
+      renderActiveView();
+      showToast('Tarea guardada exitosamente', 'success');
+    }
+
+    /* Subtareas en modal */
+    function addCurrentSubtask() {
+      const input = document.getElementById('new-subtask-input');
+      const val = input.value.trim();
+      if (!val) return;
+
+      currentTaskSubtasksBuffer.push({
+        id: 'sub-' + Date.now(),
+        title: val,
+        completed: false
+      });
+      input.value = '';
+      renderSubtasksEditorList();
+    }
+
+    function toggleSubtaskBuffer(index) {
+      if (currentTaskSubtasksBuffer[index]) {
+        currentTaskSubtasksBuffer[index].completed = !currentTaskSubtasksBuffer[index].completed;
+        renderSubtasksEditorList();
+      }
+    }
+
+    function deleteSubtaskBuffer(index) {
+      currentTaskSubtasksBuffer.splice(index, 1);
+      renderSubtasksEditorList();
+    }
+
+    function renderSubtasksEditorList() {
+      const container = document.getElementById('subtasks-list-container');
+      const summaryEl = document.getElementById('modal-subtasks-summary');
+      if (!container) return;
+
+      const total = currentTaskSubtasksBuffer.length;
+      const done = currentTaskSubtasksBuffer.filter(s => s.completed).length;
+      if (summaryEl) summaryEl.textContent = `${done} de ${total} completadas`;
+
+      if (total === 0) {
+        container.innerHTML = `<span style="font-size:0.78rem; color:var(--text-dim);">No hay subtareas añadidas.</span>`;
+        return;
+      }
+
+      container.innerHTML = currentTaskSubtasksBuffer.map((sub, idx) => `
+        <div class="subtask-item-row">
+          <input type="checkbox" class="subtask-checkbox" ${sub.completed ? 'checked' : ''} onchange="toggleSubtaskBuffer(${idx})">
+          <span class="subtask-title-text ${sub.completed ? 'done' : ''}">${escapeHTML(sub.title)}</span>
+          <button type="button" class="subtask-delete-btn" onclick="deleteSubtaskBuffer(${idx})">&times;</button>
+        </div>
+      `).join('');
+    }
+
+    /* REUNIONES: CREAR / EDITAR */
+    function openNewMeetingModal() {
+      document.getElementById('form-meeting').reset();
+      document.getElementById('meeting-id').value = '';
+      document.getElementById('modal-meeting-title').textContent = 'Programar Nueva Reunión';
+
+      // Fecha por defecto: hoy a las 10:00
+      const now = new Date();
+      now.setMinutes(0);
+      const tzOffset = now.getTimezoneOffset() * 60000;
+      const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 16);
+      document.getElementById('meeting-date-input').value = localISOTime;
+
+      populateMeetingProjectsCheckboxes([]);
+      document.getElementById('meeting-action-items-section').style.display = 'none';
+      openModal('modal-meeting');
+    }
+
+    function openEditMeetingModal(meetingId) {
+      const meet = appData.meetings.find(m => m.id === meetingId);
+      if (!meet) return;
+
+      document.getElementById('meeting-id').value = meet.id;
+      document.getElementById('modal-meeting-title').textContent = `Acta de Reunión: ${meet.title}`;
+      document.getElementById('meeting-title-input').value = meet.title;
+      document.getElementById('meeting-date-input').value = meet.date || '';
+      document.getElementById('meeting-location-input').value = meet.location || '';
+      document.getElementById('meeting-attendees-input').value = (meet.attendees || []).join(' ');
+      document.getElementById('meeting-notes-input').value = meet.notes || '';
+
+      populateMeetingProjectsCheckboxes(meet.projectIds || []);
+
+      // Listar tareas resultantes
+      const actionItemsSection = document.getElementById('meeting-action-items-section');
+      const actionItemsList = document.getElementById('meeting-action-items-list');
+      actionItemsSection.style.display = 'block';
+
+      const actions = appData.tasks.filter(t => t.meetingId === meet.id);
+      if (actions.length === 0) {
+        actionItemsList.innerHTML = `<span style="color:var(--text-dim);">No hay tareas nacidas de esta reunión todavía. Usa el botón "Convertir nota en Tarea" para crear una.</span>`;
+      } else {
+        actionItemsList.innerHTML = actions.map(a => `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <a href="#" onclick="openEditTaskModal('${a.id}'); return false;" style="color:var(--primary); font-weight:600;">[${a.code}] ${escapeHTML(a.title)}</a>
+            <span class="badge badge-priority-${a.priority}">${a.status}</span>
+          </div>
+        `).join('');
+      }
+
+      openModal('modal-meeting');
+    }
+
+    function deleteCurrentMeeting() {
+      const meetingId = document.getElementById('meeting-id').value;
+      if (!meetingId) return;
+
+      const meet = appData.meetings.find(m => m.id === meetingId);
+      if (!confirm(`¿Estás seguro de que deseas eliminar la reunión "${meet ? meet.title : ''}"?`)) {
+        return;
+      }
+
+      appData.meetings = appData.meetings.filter(m => m.id !== meetingId);
+      // Desvincular de tareas
+      appData.tasks.forEach(t => {
+        if (t.meetingId === meetingId) t.meetingId = null;
+      });
+
+      saveData();
+      updateAllViewCounts();
+      renderActiveView();
+      closeModal('modal-meeting');
+      showToast('Reunión eliminada correctamente', 'info');
+    }
+
+    function populateMeetingProjectsCheckboxes(selectedProjectIds) {
+      const container = document.getElementById('meeting-projects-checkboxes');
+      if (!container) return;
+
+      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
+      const projectsToDisplay = appData.projects.filter(p => p.status !== 'cerrado' || (selectedProjectIds && selectedProjectIds.includes(p.id)));
+
+      if (projectsToDisplay.length === 0) {
+        container.innerHTML = `<span style="font-size:0.75rem; color:var(--text-dim);">No hay proyectos disponibles.</span>`;
+        return;
+      }
+
+      container.innerHTML = projectsToDisplay.map(p => {
+        const isClosed = p.status === 'cerrado';
+        return `
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; cursor:pointer;">
+            <input type="checkbox" value="${p.id}" ${(selectedProjectIds || []).includes(p.id) ? 'checked' : ''}>
+            <span style="color:${isClosed ? 'var(--text-dim)' : p.color}; font-weight:600;">
+              ● ${escapeHTML(p.name)} ${isClosed ? '(🔒 Cerrado)' : ''}
+            </span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    function handleSaveMeeting(e) {
+      e.preventDefault();
+      const id = document.getElementById('meeting-id').value;
+      const title = document.getElementById('meeting-title-input').value.trim();
+      const date = document.getElementById('meeting-date-input').value;
+      const location = document.getElementById('meeting-location-input').value.trim();
+      const attendeesRaw = document.getElementById('meeting-attendees-input').value.trim();
+      const notes = document.getElementById('meeting-notes-input').value;
+
+      // Proyectos seleccionados (pueden ser 0, 1 o varios)
+      const checkedProjects = Array.from(document.querySelectorAll('#meeting-projects-checkboxes input[type="checkbox"]:checked')).map(c => c.value);
+
+      // Extraer y registrar miembros en asistentes y notas
+      extractAndRegisterMentionsFromText(attendeesRaw);
+      extractAndRegisterMentionsFromText(notes);
+
+      const attendees = attendeesRaw.split(/\s+/).filter(a => a.startsWith('@')).map(a => a.trim());
+
+      if (id) {
+        const meet = appData.meetings.find(m => m.id === id);
+        if (meet) {
+          meet.title = title;
+          meet.date = date;
+          meet.location = location;
+          meet.projectIds = checkedProjects;
+          meet.attendees = attendees;
+          meet.notes = notes;
+        }
+      } else {
+        const newMeet = {
+          id: 'meet-' + Date.now(),
+          title,
+          date,
+          location,
+          projectIds: checkedProjects,
+          attendees,
+          notes,
+          actionItemIds: []
+        };
+        appData.meetings.push(newMeet);
+      }
+
+      saveData();
+      closeModal('modal-meeting');
+      renderActiveView();
+      showToast('Reunión y acta guardadas correctamente', 'success');
+    }
+
+    /* CONVERTIR NOTA O LÍNEA DE REUNIÓN DIRECTAMENTE EN TAREA */
+    function convertNotesSelectionToTask() {
+      const textarea = document.getElementById('meeting-notes-input');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      let text = '';
+
+      if (start !== end) {
+        text = textarea.value.substring(start, end).trim();
+      } else {
+        // Seleccionar línea actual
+        const lines = textarea.value.split('\n');
+        let currentPos = 0;
+        for (let l of lines) {
+          if (start >= currentPos && start <= currentPos + l.length) {
+            text = l.replace(/^[-*•]\s*/, '').trim();
+            break;
+          }
+          currentPos += l.length + 1;
+        }
+      }
+
+      if (!text) {
+        showToast('Selecciona un fragmento de texto o escribe una línea para convertirla en tarea', 'warning');
+        return;
+      }
+
+      // Proyectos de la reunión actual
+      const checkedProjects = Array.from(document.querySelectorAll('#meeting-projects-checkboxes input[type="checkbox"]:checked')).map(c => c.value);
+      const meetingId = document.getElementById('meeting-id').value;
+
+      // Detectar si hay @Mención de responsable en el texto
+      const mentionMatch = text.match(/@([a-zA-Z0-9_\u00C0-\u017F]+)/);
+      let assignee = '';
+      if (mentionMatch) {
+        assignee = mentionMatch[1];
+        registerMemberIfNeeded(assignee);
+      }
+
+      const nextNum = appData.tasks.length + 101;
+      const newTask = {
+        id: 'tsk-' + Date.now(),
+        code: 'TSK-' + nextNum,
+        title: text.replace(/@[a-zA-Z0-9_\u00C0-\u017F]+/g, '').trim(),
+        description: `Tarea surgida de la reunión "${document.getElementById('meeting-title-input').value}".`,
+        assignedTo: assignee,
+        projectId: checkedProjects.length === 1 ? checkedProjects[0] : null,
+        meetingId: meetingId || null,
+        priority: 'media',
+        status: 'pendiente',
+        startDate: new Date().toISOString().split('T')[0],
+        dueDate: null,
+        blockedBy: [],
+        subtasks: []
+      };
+
+      appData.tasks.push(newTask);
+      saveData();
+      showToast(`¡Tarea creada desde el acta! [${newTask.code}]`, 'success');
+
+      // Actualizar vista de actas si la reunión ya estaba guardada
+      if (meetingId) {
+        openEditMeetingModal(meetingId);
+      }
+    }
+
+    /* PROYECTO: CREAR / EDITAR */
+    function openNewProjectModal() {
+      document.getElementById('form-project').reset();
+      document.getElementById('project-id').value = '';
+      document.getElementById('project-status-select').value = 'en_curso';
+      document.getElementById('modal-project-title').textContent = 'Nuevo Proyecto';
+      openModal('modal-project');
+    }
+
+    function openEditProjectModal(projectId) {
+      const prj = appData.projects.find(p => p.id === projectId);
+      if (!prj) return;
+
+      document.getElementById('project-id').value = prj.id;
+      document.getElementById('modal-project-title').textContent = `Editar Proyecto: ${prj.code}`;
+      document.getElementById('project-name-input').value = prj.name;
+      document.getElementById('project-code-input').value = prj.code;
+      document.getElementById('project-color-input').value = prj.color || '#4f46e5';
+      document.getElementById('project-status-select').value = prj.status || 'en_curso';
+      document.getElementById('project-desc-input').value = prj.description || '';
+      const btnDelete = document.getElementById('btn-delete-project');
+      if (btnDelete) btnDelete.style.display = 'inline-flex';
+      openModal('modal-project');
+    }
+
+    function deleteCurrentProject() {
+      const projectId = document.getElementById('project-id').value;
+      if (!projectId) return;
+
+      const prj = appData.projects.find(p => p.id === projectId);
+      if (!confirm(`¿Estás seguro de que deseas eliminar el proyecto "${prj ? prj.name : ''}"?\n\nLas tareas vinculadas se mantendrán como transversales.`)) {
+        return;
+      }
+
+      appData.projects = appData.projects.filter(p => p.id !== projectId);
+      // Tareas pasan a transversales
+      appData.tasks.forEach(t => {
+        if (t.projectId === projectId) t.projectId = null;
+      });
+      // Desvincular de reuniones
+      appData.meetings.forEach(m => {
+        if (m.projectIds) {
+          m.projectIds = m.projectIds.filter(id => id !== projectId);
+        }
+      });
+
+      saveData();
+      populateFilterSelectors();
+      updateAllViewCounts();
+      renderActiveView();
+      closeModal('modal-project');
+      showToast('Proyecto eliminado correctamente', 'info');
+    }
+
+    function handleSaveProject(e) {
+      e.preventDefault();
+      const id = document.getElementById('project-id').value;
+      const name = document.getElementById('project-name-input').value.trim();
+      const code = document.getElementById('project-code-input').value.trim().toUpperCase() || 'PRJ-' + (appData.projects.length + 1);
+      const color = document.getElementById('project-color-input').value;
+      const status = document.getElementById('project-status-select').value || 'en_curso';
+      const desc = document.getElementById('project-desc-input').value.trim();
+
+      if (id) {
+        const prj = appData.projects.find(p => p.id === id);
+        if (prj) {
+          prj.name = name;
+          prj.code = code;
+          prj.color = color;
+          prj.status = status;
+          prj.description = desc;
+        }
+      } else {
+        const newPrj = {
+          id: 'prj-' + Date.now(),
+          code,
+          name,
+          color,
+          status,
+          description: desc,
+          createdAt: new Date().toISOString().split('T')[0]
+        };
+        appData.projects.push(newPrj);
+      }
+
+      saveData();
+      populateFilterSelectors();
+      updateAllViewCounts();
+      closeModal('modal-project');
+      renderActiveView();
+      showToast('Proyecto guardado exitosamente', 'success');
+    }
+
+    /* ==========================================================================
+       SELECTORES Y FILTROS GLOBALES
+       ========================================================================== */
+    function populateFilterSelectors() {
+      // Filtro de proyectos (solo proyectos en curso)
+      const prjFilter = document.getElementById('filter-project');
+      const curPrjVal = prjFilter.value;
+      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
+      prjFilter.innerHTML = `
+        <option value="all">Todos los Proyectos en Curso</option>
+        <option value="none">Sin Proyecto (Transversales)</option>
+        ${activeProjects.map(p => `<option value="${p.id}">● ${escapeHTML(p.name)}</option>`).join('')}
+      `;
+      if (curPrjVal && curPrjVal !== 'all' && curPrjVal !== 'none' && !activeProjects.some(p => p.id === curPrjVal)) {
+        prjFilter.value = 'all';
+      } else {
+        prjFilter.value = curPrjVal || 'all';
+      }
+
+      // Filtro de miembros
+      const memberFilter = document.getElementById('filter-member');
+      const curMemVal = memberFilter.value;
+      memberFilter.innerHTML = `
+        <option value="all">Cualquier Miembro (@)</option>
+        ${appData.members.map(m => `<option value="${m}">@${escapeHTML(m)}</option>`).join('')}
+      `;
+      memberFilter.value = curMemVal || 'all';
+    }
+
+    function updateAllViewCounts() {
+      const activeTasks = appData.tasks.filter(t => isProjectActive(t.projectId));
+      const activeMeetings = appData.meetings.filter(m => isMeetingActive(m));
+      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
+      const blockedCount = activeTasks.filter(t => isTaskBlocked(t) || t.status === 'bloqueada').length;
+
+      const badgeKanban = document.getElementById('badge-kanban-count');
+      const badgeMeetings = document.getElementById('badge-meetings-count');
+      const badgeProjects = document.getElementById('badge-projects-count');
+      const badgeBlocked = document.getElementById('badge-blocked-count');
+
+      if (badgeKanban) badgeKanban.textContent = activeTasks.length;
+      if (badgeMeetings) badgeMeetings.textContent = activeMeetings.length;
+      if (badgeProjects) badgeProjects.textContent = activeProjects.length;
+      if (badgeBlocked) badgeBlocked.textContent = blockedCount;
+    }
+
+    /* ==========================================================================
+       EVENTOS Y ACCIONES GLOBALES
+       ========================================================================== */
+    function bindGlobalEvents() {
+      // Navegación de vistas en sidebar
+      document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+          switchView(item.dataset.view);
+        });
+      });
+
+      // Botones de acción rápida en cabecera
+      document.getElementById('btn-new-task').addEventListener('click', openNewTaskModal);
+      document.getElementById('btn-new-meeting').addEventListener('click', openNewMeetingModal);
+      document.getElementById('btn-create-meeting-view').addEventListener('click', openNewMeetingModal);
+      document.getElementById('btn-create-project').addEventListener('click', openNewProjectModal);
+
+      // Búsqueda y filtros
+      document.getElementById('global-search').addEventListener('input', () => renderActiveView());
+      document.getElementById('filter-project').addEventListener('change', () => renderActiveView());
+      document.getElementById('filter-member').addEventListener('change', () => renderActiveView());
+      document.getElementById('filter-priority').addEventListener('change', () => renderActiveView());
+      document.getElementById('filter-block-status').addEventListener('change', () => renderActiveView());
+
+      // Atajo de teclado '/' para búsqueda, 'Esc' para modales, 'N' para nueva tarea, 'M' para reunión
+      window.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          document.getElementById('global-search').focus();
+        } else if (e.key === 'Escape') {
+          document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+        } else if ((e.key === 'n' || e.key === 'N') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          openNewTaskModal();
+        } else if ((e.key === 'm' || e.key === 'M') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          openNewMeetingModal();
+        }
+      });
+
+      // Confirmaciones de completar con avisos
+      document.getElementById('btn-confirm-complete-warnings').addEventListener('click', () => {
+        if (pendingCompletionTask) {
+          pendingCompletionTask.task.status = 'completada_avisos';
+          saveData();
+          checkAndNotifyUnblockedTasks(pendingCompletionTask.task);
+          closeModal('modal-complete-warnings');
+          renderActiveView();
+          showToast(`Tarea ${pendingCompletionTask.task.code} marcada como Completada con Avisos`, 'warning');
+          if (pendingCompletionTask.onProceed) pendingCompletionTask.onProceed();
+        }
+      });
+
+      document.getElementById('btn-confirm-complete-all').addEventListener('click', () => {
+        if (pendingCompletionTask) {
+          // Marcar todas las subtareas como completadas
+          (pendingCompletionTask.task.subtasks || []).forEach(s => s.completed = true);
+          pendingCompletionTask.task.status = 'completada';
+          saveData();
+          checkAndNotifyUnblockedTasks(pendingCompletionTask.task);
+          closeModal('modal-complete-warnings');
+          renderActiveView();
+          showToast(`Todas las subtareas completadas y tarea cerrada con éxito`, 'success');
+          if (pendingCompletionTask.onProceed) pendingCompletionTask.onProceed();
+        }
+      });
+
+      // Navegación de calendario
+      document.getElementById('btn-cal-prev').addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+        renderCalendarView();
+      });
+      document.getElementById('btn-cal-today').addEventListener('click', () => {
+        currentCalendarDate = new Date();
+        renderCalendarView();
+      });
+      document.getElementById('btn-cal-next').addEventListener('click', () => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+        renderCalendarView();
+      });
+
+      // Modo Claro / Oscuro
+      document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+        const nextTheme = appData.settings.theme === 'dark' ? 'light' : 'dark';
+        appData.settings.theme = nextTheme;
+        applyTheme(nextTheme);
+        saveData();
+      });
+
+      // Exportar JSON
+      document.getElementById('btn-export-json').addEventListener('click', exportDataJSON);
+
+      // Importar JSON
+      const importTrigger = document.getElementById('btn-import-json-trigger');
+      const importInput = document.getElementById('input-import-json');
+      importTrigger.addEventListener('click', () => importInput.click());
+      importInput.addEventListener('change', handleImportJSON);
+
+      // Restaurar / Cargar demo
+      document.getElementById('btn-reset-demo').addEventListener('click', restoreDemoData);
+
+      // Autocompletado de menciones @
+      setupMentionAutocomplete('task-assignee-input', 'dropdown-task-assignee');
+      setupMentionAutocomplete('task-desc-input', 'dropdown-task-desc');
+      setupMentionAutocomplete('meeting-attendees-input', 'dropdown-meeting-attendees');
+    }
+
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        document.body.classList.add('light-theme');
+      } else {
+        document.body.classList.remove('light-theme');
+      }
+    }
+
+    /* EXPORTAR E IMPORTAR JSON */
+    function exportDataJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `prj_manager_backup_${dateStr}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Archivo JSON de respaldo exportado', 'success');
+    }
+
+    function handleImportJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (parsed && Array.isArray(parsed.tasks) && Array.isArray(parsed.projects)) {
+            appData = parsed;
+            saveData();
+            populateFilterSelectors();
+            renderActiveView();
+            showToast('Copia de seguridad importada con éxito', 'success');
+          } else {
+            showToast('El archivo JSON no tiene la estructura de PrjManager válida', 'danger');
+          }
+        } catch (err) {
+          showToast('Error al parsear el archivo JSON', 'danger');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    /* TOASTS NOTIFICACIONES */
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <span style="font-size:1.1rem;">${type === 'success' ? '✓' : (type === 'warning' ? '⚠️' : (type === 'danger' ? '⛔' : 'ℹ️'))}</span>
+        <span>${escapeHTML(message)}</span>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3800);
+    }
+
+    /* HELPERS */
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+
+    function formatDateTime(dateTimeStr) {
+      if (!dateTimeStr) return '';
+      const d = new Date(dateTimeStr);
+      return `${formatDate(dateTimeStr)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function isDueDateOverdue(dueDateStr, status) {
+      if (!dueDateStr) return false;
+      if (status === 'completada' || status === 'completada_avisos') return false;
+      const due = new Date(dueDateStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return due < today;
+    }
+
+    // Exponer funciones para interacción global y handlers inline
+    window.openNewTaskModal = openNewTaskModal;
+    window.openEditTaskModal = openEditTaskModal;
+    window.openNewMeetingModal = openNewMeetingModal;
+    window.openEditMeetingModal = openEditMeetingModal;
+    window.openNewProjectModal = openNewProjectModal;
+    window.openEditProjectModal = openEditProjectModal;
+    window.closeModal = closeModal;
+    window.handleSaveTask = handleSaveTask;
+    window.handleSaveMeeting = handleSaveMeeting;
+    window.handleSaveProject = handleSaveProject;
+    window.addCurrentSubtask = addCurrentSubtask;
+    window.toggleSubtaskBuffer = toggleSubtaskBuffer;
+    window.deleteSubtaskBuffer = deleteSubtaskBuffer;
+    window.convertNotesSelectionToTask = convertNotesSelectionToTask;
+    window.switchView = switchView;
+    window.jumpToTaskFromModal = jumpToTaskFromModal;
+    window.removeBlockerTask = removeBlockerTask;
+    window.removeBlockedTask = removeBlockedTask;
+    window.addBlockerTaskFromSelect = addBlockerTaskFromSelect;
+    window.addBlockedTaskFromSelect = addBlockedTaskFromSelect;
+    window.deleteCurrentTask = deleteCurrentTask;
+    window.deleteCurrentMeeting = deleteCurrentMeeting;
+    window.deleteCurrentProject = deleteCurrentProject;
+    window.clearAllData = clearAllData;
+    window.restoreDemoData = restoreDemoData;
+    window.clearAllFilters = clearAllFilters;
+    window.initApp = initApp;
+
+    // Arrancar la aplicación al cargar el DOM o inmediatamente si ya está listo
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
