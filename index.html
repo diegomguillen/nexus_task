@@ -2377,7 +2377,7 @@
                 </button>
               </div>
 
-              <select class="filter-select" id="git-graph-project-filter" onchange="renderDependenciesView()" style="min-width:180px;">
+              <select class="filter-select" id="git-graph-project-filter" onchange="syncProjectFilterFromView(this.value)" style="min-width:180px;">
                 <option value="all">Todas las ramas (Proyectos)</option>
               </select>
 
@@ -2547,11 +2547,11 @@
                 <span>Linaje de Origen</span>
               </span>
 
-              <select class="filter-select" id="lineage-project-filter" onchange="renderLineageView()" style="min-width:180px;">
+              <select class="filter-select" id="lineage-project-filter" onchange="syncProjectFilterFromView(this.value)" style="min-width:180px;">
                 <option value="all">Todos los Proyectos</option>
               </select>
 
-              <select class="filter-select" id="lineage-origin-filter" onchange="renderLineageView()" style="min-width:180px;">
+              <select class="filter-select" id="lineage-origin-filter" onchange="handleLineageOriginChange(this.value)" style="min-width:180px;">
                 <option value="all">Todos los orígenes de tareas</option>
                 <option value="from_meeting">Nacidas en Reunión / Acta</option>
                 <option value="direct_project">Planificadas directo en Proyecto</option>
@@ -2871,12 +2871,12 @@
           <div class="form-group">
             <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
               <span>Bloc de Notas Rápidas y Puntos Tratados</span>
-              <span style="font-size:0.75rem; color:var(--primary); font-weight:600;">⚡ Selección de texto $\rightarrow$ Convertir a Tarea</span>
+              <span style="font-size:0.75rem; color:var(--primary); font-weight:600;">⚡ Escribe entre "" "" para tareas (ej: ""@Diego tarea x"")</span>
             </label>
             <div class="quick-notes-box">
-              <textarea class="quick-notes-textarea" id="meeting-notes-input" placeholder="Escribe aquí los apuntes durante la reunión. Puedes escribir @Nombre para asignar responsables..."></textarea>
+              <textarea class="quick-notes-textarea" id="meeting-notes-input" placeholder="Escribe aquí los apuntes durante la reunión. Escribe tareas entre comillas dobles: &quot;&quot;@Responsable tarea x&quot;&quot; o &quot;&quot;tarea y&quot;&quot;..."></textarea>
               <div class="quick-notes-toolbar">
-                <span class="quick-notes-hint">Escribe una línea con '-' o selecciónala para crear una tarea directa.</span>
+                <span class="quick-notes-hint">Escribe tareas entre <strong>"" ""</strong> (ej: <code>""@Diego tarea x""</code> o <code>""tarea y""</code>) y pulsa convertir.</span>
                 <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 10px;" onclick="convertNotesSelectionToTask()">
                   ➕ Convertir nota en Tarea
                 </button>
@@ -2886,7 +2886,12 @@
 
           <!-- LISTA DE TAREAS QUE HAN NACIDO DE ESTA REUNIÓN -->
           <div class="form-group" id="meeting-action-items-section">
-            <label class="form-label">Tareas / Acuerdos generados a partir de esta reunión</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="form-label" style="margin-bottom:0;">Tareas / Acuerdos generados a partir de esta reunión</label>
+              <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:3px 9px;" onclick="createNewTaskFromCurrentMeeting()">
+                ➕ + Nueva Tarea para esta Reunión
+              </button>
+            </div>
             <div id="meeting-action-items-list" style="display:flex; flex-direction:column; gap:6px; font-size:0.82rem; background:var(--bg-card); padding:10px; border-radius:var(--radius-md);">
               <span style="color:var(--text-dim);">No hay tareas vinculadas todavía.</span>
             </div>
@@ -3553,6 +3558,13 @@
         document.getElementById('view-subtitle').textContent = titles[viewName].s;
       }
 
+      // Sincronizar selectores locales de vistas de grafo con el filtro global de proyecto
+      const curGlobalPrj = document.getElementById('filter-project')?.value || 'all';
+      const gPrj = document.getElementById('git-graph-project-filter');
+      if (gPrj) gPrj.value = curGlobalPrj;
+      const lPrj = document.getElementById('lineage-project-filter');
+      if (lPrj) lPrj.value = curGlobalPrj;
+
       renderActiveView();
     }
 
@@ -3677,6 +3689,40 @@
       }
     }
 
+    function syncProjectFilterFromView(val) {
+      const pSel = document.getElementById('filter-project');
+      if (pSel) pSel.value = val;
+      const gSel = document.getElementById('git-graph-project-filter');
+      if (gSel) gSel.value = val;
+      const lSel = document.getElementById('lineage-project-filter');
+      if (lSel) lSel.value = val;
+      const oSel = document.getElementById('lineage-origin-filter');
+      if (oSel) {
+        if (val === 'none') {
+          oSel.value = 'transversal';
+        } else if (val !== 'all' && oSel.value === 'transversal') {
+          oSel.value = 'all';
+        }
+      }
+      renderActiveView();
+    }
+
+    function handleLineageOriginChange(val) {
+      if (val === 'transversal') {
+        syncProjectFilterFromView('none');
+      } else {
+        const pSel = document.getElementById('filter-project');
+        if (pSel && pSel.value === 'none') {
+          pSel.value = 'all';
+          const lSel = document.getElementById('lineage-project-filter');
+          if (lSel) lSel.value = 'all';
+          const gSel = document.getElementById('git-graph-project-filter');
+          if (gSel) gSel.value = 'all';
+        }
+        renderLineageView();
+      }
+    }
+
     function clearAllFilters() {
       const searchInput = document.getElementById('global-search');
       if (searchInput) searchInput.value = '';
@@ -3685,6 +3731,10 @@
 
       const pSel = document.getElementById('filter-project');
       if (pSel) pSel.value = 'all';
+      const gSel = document.getElementById('git-graph-project-filter');
+      if (gSel) gSel.value = 'all';
+      const lSel = document.getElementById('lineage-project-filter');
+      if (lSel) lSel.value = 'all';
       const mSel = document.getElementById('filter-member');
       if (mSel) mSel.value = 'all';
       const prSel = document.getElementById('filter-priority');
@@ -4262,16 +4312,18 @@
     }
 
     function renderDependenciesView() {
+      const curVal = document.getElementById('filter-project')?.value || 'all';
       const projectFilterEl = document.getElementById('git-graph-project-filter');
+      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
       if (projectFilterEl) {
-        const curVal = projectFilterEl.value || 'all';
         projectFilterEl.innerHTML = `
           <option value="all" ${curVal === 'all' ? 'selected' : ''}>Todas las ramas (Proyectos)</option>
           <option value="none" ${curVal === 'none' ? 'selected' : ''}>Sin Proyecto (Transversales)</option>
-          ${appData.projects.map(p => `
+          ${activeProjects.map(p => `
             <option value="${p.id}" ${curVal === p.id ? 'selected' : ''}>${escapeHTML(p.name)} (${p.code})</option>
           `).join('')}
         `;
+        projectFilterEl.value = (curVal && curVal !== 'all' && curVal !== 'none' && !activeProjects.some(p => p.id === curVal)) ? 'all' : curVal;
       }
 
       let activeTasks = filteredTasksCache;
@@ -4744,6 +4796,24 @@
       const tokens = normQ ? normQ.split(/\s+/).map(t => t.replace(/^@/, '')).filter(Boolean) : [];
 
       let activeMeetings = appData.meetings.filter(m => isMeetingActive(m));
+
+      // Filtro por proyecto desde la barra superior
+      const prjFilter = document.getElementById('filter-project') ? document.getElementById('filter-project').value : 'all';
+      if (prjFilter !== 'all') {
+        if (prjFilter === 'none') {
+          activeMeetings = activeMeetings.filter(m => !m.projectIds || m.projectIds.length === 0);
+        } else {
+          activeMeetings = activeMeetings.filter(m => Array.isArray(m.projectIds) && m.projectIds.includes(prjFilter));
+        }
+      }
+
+      // Filtro por miembro (@) desde la barra superior
+      const memberFilter = document.getElementById('filter-member') ? document.getElementById('filter-member').value : 'all';
+      if (memberFilter !== 'all') {
+        activeMeetings = activeMeetings.filter(m => 
+          Array.isArray(m.attendees) && m.attendees.some(a => a.toLowerCase().includes(memberFilter.toLowerCase()))
+        );
+      }
 
       if (tokens.length > 0) {
         activeMeetings = activeMeetings.filter(m => {
@@ -5361,9 +5431,9 @@
       initLineagePanEvents();
       updateLineageZoomUI();
 
-      // Sincronizar selector de proyectos
+      // Sincronizar selector de proyectos con filtro global
       if (projectFilterEl) {
-        const curVal = projectFilterEl.value || 'all';
+        const curVal = document.getElementById('filter-project')?.value || 'all';
         const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
         projectFilterEl.innerHTML = `
           <option value="all">Todos los Proyectos</option>
@@ -5376,11 +5446,24 @@
       const selectedPrjId = projectFilterEl ? projectFilterEl.value : 'all';
       const selectedOrigin = originFilterEl ? originFilterEl.value : 'all';
 
+      const isTransversalFilter = selectedPrjId === 'none' || selectedOrigin === 'transversal';
+
       // 1. Filtrar proyectos a mostrar
       let projectsToShow = [];
       const hasTransversalTasksOrMeetings = appData.tasks.some(t => !t.projectId) || appData.meetings.some(m => !m.projectIds || m.projectIds.length === 0);
 
-      if (selectedPrjId === 'all') {
+      if (isTransversalFilter) {
+        if (hasTransversalTasksOrMeetings) {
+          projectsToShow = [{
+            id: 'prj-transversal',
+            code: 'GENERAL',
+            name: 'Transversal / Sin Proyecto',
+            color: '#64748b',
+            description: 'Actas y tareas que no pertenecen a ningún proyecto cerrado.',
+            status: 'en_curso'
+          }];
+        }
+      } else if (selectedPrjId === 'all') {
         projectsToShow = appData.projects.filter(p => isProjectActive(p.id));
         if (hasTransversalTasksOrMeetings) {
           projectsToShow.push({
@@ -5392,15 +5475,6 @@
             status: 'en_curso'
           });
         }
-      } else if (selectedPrjId === 'none') {
-        projectsToShow = [{
-          id: 'prj-transversal',
-          code: 'GENERAL',
-          name: 'Transversal / Sin Proyecto',
-          color: '#64748b',
-          description: 'Actas y tareas que no pertenecen a ningún proyecto cerrado.',
-          status: 'en_curso'
-        }];
       } else {
         const prj = appData.projects.find(p => p.id === selectedPrjId);
         if (prj) projectsToShow = [prj];
@@ -5410,12 +5484,11 @@
       let meetingsToShow = appData.meetings.filter(m => {
         if (!isMeetingActive(m)) return false;
 
-        if (selectedPrjId !== 'all') {
-          if (selectedPrjId === 'none') {
-            if (m.projectIds && m.projectIds.length > 0) return false;
-          } else {
-            if (!m.projectIds || !m.projectIds.includes(selectedPrjId)) return false;
-          }
+        if (isTransversalFilter) {
+          // Si el filtro es transversal, EXCLUIR cualquier reunión vinculada a proyectos específicos
+          if (m.projectIds && m.projectIds.length > 0) return false;
+        } else if (selectedPrjId !== 'all') {
+          if (!m.projectIds || !m.projectIds.includes(selectedPrjId)) return false;
         }
 
         if (selectedOrigin === 'direct_project') return false; // Solo directas
@@ -5426,20 +5499,17 @@
       let tasksToShow = appData.tasks.filter(t => {
         if (!isProjectActive(t.projectId)) return false;
 
-        if (selectedPrjId !== 'all') {
-          if (selectedPrjId === 'none') {
-            if (t.projectId) return false;
-          } else {
-            if (t.projectId !== selectedPrjId) return false;
-          }
+        if (isTransversalFilter) {
+          // Si el filtro es transversal, EXCLUIR cualquier tarea vinculada a proyectos específicos
+          if (t.projectId) return false;
+        } else if (selectedPrjId !== 'all') {
+          if (t.projectId !== selectedPrjId) return false;
         }
 
         if (selectedOrigin === 'from_meeting') {
           if (!t.meetingId) return false;
         } else if (selectedOrigin === 'direct_project') {
           if (t.meetingId || !t.projectId) return false;
-        } else if (selectedOrigin === 'transversal') {
-          if (t.projectId) return false;
         }
 
         return true;
@@ -5883,13 +5953,22 @@
     function closeModal(modalId) {
       const el = document.getElementById(modalId);
       if (el) el.classList.remove('open');
+      if (modalId === 'modal-task' && editingTaskFromMeetingBuffer) {
+        editingTaskFromMeetingBuffer = null;
+        openModal('modal-meeting');
+      }
+      if (modalId === 'modal-meeting') {
+        currentMeetingTasksBuffer = [];
+        currentMeetingDeletedTaskIds = [];
+        editingTaskFromMeetingBuffer = null;
+      }
     }
 
     /* TAREA: CREAR / EDITAR */
     let currentTaskBlockedByBuffer = [];
     let currentTaskBlocksBuffer = [];
 
-    function openNewTaskModal() {
+    function openNewTaskModal(preselectedProjectId = null, preselectedMeetingId = null) {
       document.getElementById('form-task').reset();
       document.getElementById('task-id').value = '';
       document.getElementById('modal-task-title').textContent = 'Nueva Tarea';
@@ -5900,7 +5979,28 @@
       const btnDelete = document.getElementById('btn-delete-task');
       if (btnDelete) btnDelete.style.display = 'none';
 
+      // Pre-seleccionar proyecto si viene como parámetro o si hay un proyecto activo en el filtro global
+      let initialProjectId = preselectedProjectId;
+      if (!initialProjectId) {
+        const globalPrj = document.getElementById('filter-project')?.value;
+        if (globalPrj && globalPrj !== 'all' && globalPrj !== 'none') {
+          initialProjectId = globalPrj;
+        }
+      }
+
+      // Si se pasa una reunión preseleccionada y no había proyecto, verificar si la reunión está vinculada a 1 proyecto
+      if (preselectedMeetingId && !initialProjectId) {
+        const meet = appData.meetings.find(m => m.id === preselectedMeetingId);
+        if (meet && Array.isArray(meet.projectIds) && meet.projectIds.length === 1) {
+          initialProjectId = meet.projectIds[0];
+        }
+      }
+
       populateTaskFormSelectors(null);
+      if (initialProjectId) {
+        document.getElementById('task-project-select').value = initialProjectId;
+      }
+      updateTaskMeetingOptions(initialProjectId || '', preselectedMeetingId || '');
       renderTaskDependenciesLists(null);
       renderSubtasksEditorList();
       openModal('modal-task');
@@ -5921,7 +6021,8 @@
 
       populateTaskFormSelectors(task.id);
       document.getElementById('task-project-select').value = task.projectId || '';
-      document.getElementById('task-meeting-select').value = task.meetingId || '';
+      // Filtrar y establecer la reunión correspondiente al proyecto de la tarea
+      updateTaskMeetingOptions(task.projectId || '', task.meetingId || '');
 
       // Cargar buffers de dependencias bidireccionales
       currentTaskBlockedByBuffer = Array.isArray(task.blockedBy) ? [...task.blockedBy] : [];
@@ -5939,12 +6040,46 @@
       openModal('modal-task');
     }
 
+    function renderTaskOptionGroup(tasks, selectedProjectId) {
+      if (!tasks || tasks.length === 0) return '';
+      if (selectedProjectId) {
+        const sameProject = tasks.filter(t => t.projectId === selectedProjectId);
+        const otherProject = tasks.filter(t => t.projectId !== selectedProjectId);
+        const prj = appData.projects.find(p => p.id === selectedProjectId);
+        const prjName = prj ? prj.code : 'Proyecto Actual';
+        let html = '';
+        if (sameProject.length > 0) {
+          html += `<optgroup label="Tareas de ${prjName}">` +
+            sameProject.map(t => `<option value="${t.id}">[${t.code}] ${escapeHTML(t.title)}</option>`).join('') +
+            `</optgroup>`;
+        }
+        if (otherProject.length > 0) {
+          html += `<optgroup label="Otros Proyectos y Transversales">` +
+            otherProject.map(t => {
+              const p = t.projectId ? appData.projects.find(pr => pr.id === t.projectId) : null;
+              const tag = p ? `[${p.code}] ` : '[Transversal] ';
+              return `<option value="${t.id}">${tag}[${t.code}] ${escapeHTML(t.title)}</option>`;
+            }).join('') +
+            `</optgroup>`;
+        }
+        return html;
+      } else {
+        return tasks.map(t => {
+          const p = t.projectId ? appData.projects.find(pr => pr.id === t.projectId) : null;
+          const tag = p ? `[${p.code}] ` : '[Transversal] ';
+          return `<option value="${t.id}">${tag}[${t.code}] ${escapeHTML(t.title)}</option>`;
+        }).join('');
+      }
+    }
+
     function renderTaskDependenciesLists(currentTaskId) {
       const blockedByContainer = document.getElementById('task-blocked-by-list');
       const blocksContainer = document.getElementById('task-blocks-list');
       const addBlockerSelect = document.getElementById('task-add-blocker-select');
       const addBlockingSelect = document.getElementById('task-add-blocking-select');
       if (!blockedByContainer || !blocksContainer) return;
+
+      const currentTaskProjectId = document.getElementById('task-project-select')?.value || null;
 
       // 1. Renderizar lista "Bloqueada por otras tareas"
       const blockerTasks = currentTaskBlockedByBuffer
@@ -5957,11 +6092,13 @@
         blockedByContainer.innerHTML = blockerTasks.map(t => {
           const isDone = t.status === 'completada' || t.status === 'completada_avisos';
           const statusIcon = isDone ? '✅' : '🔒';
+          const p = t.projectId ? appData.projects.find(pr => pr.id === t.projectId) : null;
+          const pTag = p ? `[${p.code}] ` : '';
           return `
             <div class="dep-item-row" title="Doble clic para abrir esta tarea" ondblclick="jumpToTaskFromModal('${t.id}')">
               <div class="dep-item-info">
                 <span>${statusIcon}</span>
-                <span class="dep-item-code">[${t.code}]</span>
+                <span class="dep-item-code">${pTag}[${t.code}]</span>
                 <span class="dep-item-title" title="${escapeHTML(t.title)}">${escapeHTML(t.title)}</span>
               </div>
               <button type="button" class="dep-item-remove-btn" title="Quitar dependencia" onclick="event.stopPropagation(); removeBlockerTask('${t.id}')">&times;</button>
@@ -5979,11 +6116,13 @@
         blocksContainer.innerHTML = `<div class="dep-empty-hint">No bloquea a ninguna otra tarea</div>`;
       } else {
         blocksContainer.innerHTML = blockedTasks.map(t => {
+          const p = t.projectId ? appData.projects.find(pr => pr.id === t.projectId) : null;
+          const pTag = p ? `[${p.code}] ` : '';
           return `
             <div class="dep-item-row" title="Doble clic para abrir esta tarea" ondblclick="jumpToTaskFromModal('${t.id}')">
               <div class="dep-item-info">
                 <span>⏳</span>
-                <span class="dep-item-code" style="color:#f59e0b;">[${t.code}]</span>
+                <span class="dep-item-code" style="color:#f59e0b;">${pTag}[${t.code}]</span>
                 <span class="dep-item-title" title="${escapeHTML(t.title)}">${escapeHTML(t.title)}</span>
               </div>
               <button type="button" class="dep-item-remove-btn" title="Quitar bloqueo (desvincular)" onclick="event.stopPropagation(); removeBlockedTask('${t.id}')">&times;</button>
@@ -5992,7 +6131,7 @@
         }).join('');
       }
 
-      // 3. Poblar select de tareas bloqueantes disponibles
+      // 3. Poblar select de tareas bloqueantes disponibles (clasificadas por proyecto)
       if (addBlockerSelect) {
         const availableBlockers = appData.tasks.filter(t => 
           t.id !== currentTaskId && 
@@ -6000,10 +6139,10 @@
           !currentTaskBlocksBuffer.includes(t.id)
         );
         addBlockerSelect.innerHTML = `<option value="">-- Añadir bloqueante --</option>` +
-          availableBlockers.map(t => `<option value="${t.id}">[${t.code}] ${escapeHTML(t.title)}</option>`).join('');
+          renderTaskOptionGroup(availableBlockers, currentTaskProjectId);
       }
 
-      // 4. Poblar select de tareas a bloquear disponibles
+      // 4. Poblar select de tareas a bloquear disponibles (clasificadas por proyecto)
       if (addBlockingSelect) {
         const availableToBlock = appData.tasks.filter(t => 
           t.id !== currentTaskId && 
@@ -6011,7 +6150,7 @@
           !currentTaskBlockedByBuffer.includes(t.id)
         );
         addBlockingSelect.innerHTML = `<option value="">-- Añadir a quien bloquea --</option>` +
-          availableToBlock.map(t => `<option value="${t.id}">[${t.code}] ${escapeHTML(t.title)}</option>`).join('');
+          renderTaskOptionGroup(availableToBlock, currentTaskProjectId);
       }
     }
 
@@ -6232,12 +6371,79 @@
           }
         }
       }
+    }
 
-      // Reuniones (solo activas)
+    /**
+     * Actualiza el desplegable de Reunión de Origen filtrando estrictamente
+     * por las reuniones relacionadas con el proyecto seleccionado.
+     */
+    function updateTaskMeetingOptions(selectedProjectId, preserveMeetingId = null) {
       const meetSelect = document.getElementById('task-meeting-select');
+      if (!meetSelect) return;
+
+      const currentVal = preserveMeetingId !== null ? preserveMeetingId : meetSelect.value;
       const activeMeetings = appData.meetings.filter(m => isMeetingActive(m));
-      meetSelect.innerHTML = `<option value="">-- Ninguna --</option>` +
-        activeMeetings.map(m => `<option value="${m.id}">${escapeHTML(m.title)} (${formatDate(m.date)})</option>`).join('');
+
+      if (selectedProjectId) {
+        // Filtrar exclusivamente reuniones que tienen relación con el proyecto seleccionado
+        const matchingMeetings = activeMeetings.filter(m => 
+          Array.isArray(m.projectIds) && m.projectIds.includes(selectedProjectId)
+        );
+
+        let html = '';
+        if (matchingMeetings.length === 0) {
+          html = `<option value="">-- Ninguna (Sin reuniones asociadas a este proyecto) --</option>`;
+        } else {
+          html = `<option value="">-- Ninguna --</option>` +
+            matchingMeetings.map(m => `<option value="${m.id}">${escapeHTML(m.title)} (${formatDate(m.date)})</option>`).join('');
+        }
+
+        // Si la tarea editada ya tenía una reunión de este proyecto que no está activa, preservarla
+        if (currentVal && !matchingMeetings.some(m => m.id === currentVal)) {
+          const preservedMeet = appData.meetings.find(m => m.id === currentVal);
+          if (preservedMeet && Array.isArray(preservedMeet.projectIds) && preservedMeet.projectIds.includes(selectedProjectId)) {
+            html += `<option value="${preservedMeet.id}">🔒 ${escapeHTML(preservedMeet.title)} (${formatDate(preservedMeet.date)})</option>`;
+          }
+        }
+
+        meetSelect.innerHTML = html;
+        // Solo mantener la reunión si pertenece a las opciones válidas para este proyecto
+        const isValid = currentVal && meetSelect.querySelector(`option[value="${currentVal}"]`);
+        meetSelect.value = isValid ? currentVal : '';
+      } else {
+        // Sin Proyecto asignado (-- Sin Proyecto (Transversal / General) --)
+        const generalMeetings = activeMeetings.filter(m => !m.projectIds || m.projectIds.length === 0);
+        const specificMeetings = activeMeetings.filter(m => Array.isArray(m.projectIds) && m.projectIds.length > 0);
+
+        let html = `<option value="">-- Ninguna --</option>`;
+        if (generalMeetings.length > 0) {
+          html += `<optgroup label="Reuniones Generales / Transversales">` +
+            generalMeetings.map(m => `<option value="${m.id}">${escapeHTML(m.title)} (${formatDate(m.date)})</option>`).join('') +
+            `</optgroup>`;
+        }
+        if (specificMeetings.length > 0) {
+          html += `<optgroup label="Reuniones de Proyectos Específicos">` +
+            specificMeetings.map(m => {
+              const pCodes = m.projectIds.map(pid => {
+                const p = appData.projects.find(prj => prj.id === pid);
+                return p ? p.code : pid;
+              }).join(', ');
+              return `<option value="${m.id}">[${pCodes}] ${escapeHTML(m.title)} (${formatDate(m.date)})</option>`;
+            }).join('') +
+            `</optgroup>`;
+        }
+
+        if (currentVal && !activeMeetings.some(m => m.id === currentVal)) {
+          const preservedMeet = appData.meetings.find(m => m.id === currentVal);
+          if (preservedMeet) {
+            html += `<option value="${preservedMeet.id}">🔒 ${escapeHTML(preservedMeet.title)} (${formatDate(preservedMeet.date)})</option>`;
+          }
+        }
+
+        meetSelect.innerHTML = html;
+        const isValid = currentVal && meetSelect.querySelector(`option[value="${currentVal}"]`);
+        meetSelect.value = isValid ? currentVal : '';
+      }
     }
 
     function handleSaveTask(e) {
@@ -6269,6 +6475,26 @@
       if (status === 'completada' && subStats.total > 0 && subStats.done < subStats.total) {
         status = 'completada_avisos';
         showToast('Tarea ajustada a "Completada con Avisos" por subtareas pendientes', 'warning');
+      }
+
+      // Si la tarea se abrió para editar desde el buffer del acta de reunión
+      if (editingTaskFromMeetingBuffer) {
+        editingTaskFromMeetingBuffer.title = title;
+        editingTaskFromMeetingBuffer.description = desc;
+        editingTaskFromMeetingBuffer.assignedTo = cleanAssignee;
+        editingTaskFromMeetingBuffer.projectId = projectId;
+        editingTaskFromMeetingBuffer.priority = priority;
+        editingTaskFromMeetingBuffer.status = status;
+        editingTaskFromMeetingBuffer.dueDate = dueDate;
+        editingTaskFromMeetingBuffer.blockedBy = [...currentTaskBlockedByBuffer];
+        editingTaskFromMeetingBuffer.subtasks = currentTaskSubtasksBuffer;
+
+        editingTaskFromMeetingBuffer = null;
+        closeModal('modal-task');
+        openModal('modal-meeting');
+        renderMeetingTasksBuffer();
+        showToast('Detalles de la tarea actualizados en el acta', 'info');
+        return;
       }
 
       if (id) {
@@ -6393,7 +6619,11 @@
       `).join('');
     }
 
-    /* REUNIONES: CREAR / EDITAR */
+    /* REUNIONES: GESTIÓN DE BUFFER DE TAREAS Y ACTAS */
+    let currentMeetingTasksBuffer = [];
+    let currentMeetingDeletedTaskIds = [];
+    let editingTaskFromMeetingBuffer = null;
+
     function openNewMeetingModal() {
       document.getElementById('form-meeting').reset();
       document.getElementById('meeting-id').value = '';
@@ -6407,7 +6637,14 @@
       document.getElementById('meeting-date-input').value = localISOTime;
 
       populateMeetingProjectsCheckboxes([]);
-      document.getElementById('meeting-action-items-section').style.display = 'none';
+      currentMeetingTasksBuffer = [];
+      currentMeetingDeletedTaskIds = [];
+      editingTaskFromMeetingBuffer = null;
+
+      const deleteBtn = document.getElementById('btn-delete-meeting');
+      if (deleteBtn) deleteBtn.style.display = 'none';
+
+      renderMeetingTasksBuffer();
       openModal('modal-meeting');
     }
 
@@ -6425,23 +6662,16 @@
 
       populateMeetingProjectsCheckboxes(meet.projectIds || []);
 
-      // Listar tareas resultantes
-      const actionItemsSection = document.getElementById('meeting-action-items-section');
-      const actionItemsList = document.getElementById('meeting-action-items-list');
-      actionItemsSection.style.display = 'block';
-
+      // Cargar tareas existentes vinculadas al acta en el buffer para poder gestionarlas
+      currentMeetingDeletedTaskIds = [];
+      editingTaskFromMeetingBuffer = null;
       const actions = appData.tasks.filter(t => t.meetingId === meet.id);
-      if (actions.length === 0) {
-        actionItemsList.innerHTML = `<span style="color:var(--text-dim);">No hay tareas nacidas de esta reunión todavía. Usa el botón "Convertir nota en Tarea" para crear una.</span>`;
-      } else {
-        actionItemsList.innerHTML = actions.map(a => `
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <a href="#" onclick="openEditTaskModal('${a.id}'); return false;" style="color:var(--primary); font-weight:600;">[${a.code}] ${escapeHTML(a.title)}</a>
-            <span class="badge badge-priority-${a.priority}">${a.status}</span>
-          </div>
-        `).join('');
-      }
+      currentMeetingTasksBuffer = actions.map(t => JSON.parse(JSON.stringify(t)));
 
+      const deleteBtn = document.getElementById('btn-delete-meeting');
+      if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+
+      renderMeetingTasksBuffer();
       openModal('modal-meeting');
     }
 
@@ -6460,6 +6690,8 @@
         if (t.meetingId === meetingId) t.meetingId = null;
       });
 
+      currentMeetingTasksBuffer = [];
+      currentMeetingDeletedTaskIds = [];
       saveData();
       updateAllViewCounts();
       renderActiveView();
@@ -6492,6 +6724,254 @@
       }).join('');
     }
 
+    /* RENDERIZADO DE TAREAS / COMPROMISOS EN EL ACTA */
+    function renderMeetingTasksBuffer() {
+      const actionItemsSection = document.getElementById('meeting-action-items-section');
+      const actionItemsList = document.getElementById('meeting-action-items-list');
+      if (!actionItemsSection || !actionItemsList) return;
+
+      actionItemsSection.style.display = 'block';
+
+      if (currentMeetingTasksBuffer.length === 0) {
+        actionItemsList.innerHTML = `
+          <div style="color:var(--text-dim); text-align:center; padding:12px 16px; font-size:0.8rem; border:1px dashed var(--border-subtle); border-radius:var(--radius-md);">
+            <span>No hay tareas preparadas en esta reunión todavía.</span><br>
+            <span style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:inline-block;">
+              Escribe en el bloc frases entre <strong>"" ""</strong> (ej: <code>""@Diego tarea x""</code> o <code>""tarea y""</code>) y pulsa <strong>➕ Convertir nota en Tarea</strong>.
+            </span>
+          </div>
+        `;
+        return;
+      }
+
+      actionItemsList.innerHTML = currentMeetingTasksBuffer.map((t) => {
+        const prj = t.projectId ? appData.projects.find(p => p.id === t.projectId) : null;
+        const prjBadge = prj
+          ? `<span class="badge" style="background:${prj.color}20; color:${prj.color}; border:1px solid ${prj.color}40; font-size:0.7rem; font-weight:600;">● ${escapeHTML(prj.code)}</span>`
+          : `<span class="badge" style="background:rgba(100,116,139,0.15); color:#94a3b8; font-size:0.7rem;">● Transversal</span>`;
+
+        const isNewDraft = Boolean(t.isDraft);
+        const statusTag = isNewDraft
+          ? `<span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.3); font-size:0.7rem; font-weight:700;">🟡 Pendiente de guardar</span>`
+          : `<span class="badge badge-priority-${t.priority || 'media'}" style="font-size:0.7rem;">[${t.code}] ${t.status || 'pendiente'}</span>`;
+
+        const assigneeTag = t.assignedTo
+          ? `<span style="color:var(--primary); font-weight:600; font-size:0.75rem;">👤 @${escapeHTML(t.assignedTo)}</span>`
+          : `<span style="color:var(--text-dim); font-size:0.75rem;">Sin asignar</span>`;
+
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-md); gap:10px;">
+            <div style="display:flex; flex-direction:column; gap:3px; overflow:hidden; flex:1;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                ${statusTag}
+                ${prjBadge}
+                <strong style="color:var(--text-main); font-size:0.84rem; word-break:break-word;">${escapeHTML(t.title)}</strong>
+              </div>
+              <div style="font-size:0.72rem; color:var(--text-muted); display:flex; align-items:center; gap:12px;">
+                ${assigneeTag}
+                <span>Prioridad: <strong>${t.priority || 'media'}</strong></span>
+                ${t.dueDate ? `<span>Fecha: ${formatDate(t.dueDate)}</span>` : ''}
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+              <button type="button" class="btn btn-secondary" style="font-size:0.72rem; padding:4px 8px;" onclick="openTaskFromMeetingBuffer('${t.id}')" title="Abrir y configurar detalles de esta tarea">
+                ✏️ Abrir
+              </button>
+              <button type="button" class="btn btn-secondary" style="font-size:0.72rem; padding:4px 8px; color:var(--danger); border-color:var(--danger-border);" onclick="removeTaskFromMeetingBuffer('${t.id}')" title="Quitar tarea del acta">
+                🗑️ Borrar
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ABRIR Y EDITAR TAREA DESDE EL BUFFER DEL ACTA */
+    function openTaskFromMeetingBuffer(taskId) {
+      const task = currentMeetingTasksBuffer.find(t => t.id === taskId);
+      if (!task) return;
+
+      editingTaskFromMeetingBuffer = task;
+
+      // Ocultar modal de reunión temporalmente
+      const modalMeeting = document.getElementById('modal-meeting');
+      if (modalMeeting) modalMeeting.classList.remove('open');
+
+      // Cargar datos en el modal de tarea
+      document.getElementById('task-id').value = task.id;
+      document.getElementById('modal-task-title').textContent = task.isDraft
+        ? `Configurar Tarea Borrador: ${task.title}`
+        : `Editar Tarea: ${task.code}`;
+      document.getElementById('task-title-input').value = task.title;
+      document.getElementById('task-desc-input').value = task.description || '';
+      document.getElementById('task-assignee-input').value = task.assignedTo ? `@${task.assignedTo}` : '';
+      document.getElementById('task-priority-select').value = task.priority || 'media';
+      document.getElementById('task-status-select').value = task.status || 'pendiente';
+      document.getElementById('task-due-date').value = task.dueDate || '';
+
+      populateTaskFormSelectors(task.id);
+      document.getElementById('task-project-select').value = task.projectId || '';
+      updateTaskMeetingOptions(task.projectId || '', '');
+
+      currentTaskBlockedByBuffer = Array.isArray(task.blockedBy) ? [...task.blockedBy] : [];
+      currentTaskBlocksBuffer = [];
+      renderTaskDependenciesLists(null);
+
+      currentTaskSubtasksBuffer = JSON.parse(JSON.stringify(task.subtasks || []));
+      renderSubtasksEditorList();
+
+      const btnDelete = document.getElementById('btn-delete-task');
+      if (btnDelete) btnDelete.style.display = 'none';
+
+      openModal('modal-task');
+    }
+
+    /* QUITAR TAREA DEL BUFFER DEL ACTA */
+    function removeTaskFromMeetingBuffer(taskId) {
+      const idx = currentMeetingTasksBuffer.findIndex(t => t.id === taskId);
+      if (idx === -1) return;
+
+      const removed = currentMeetingTasksBuffer[idx];
+      currentMeetingTasksBuffer.splice(idx, 1);
+
+      if (!removed.isDraft) {
+        currentMeetingDeletedTaskIds.push(removed.id);
+      }
+
+      renderMeetingTasksBuffer();
+      showToast(`Tarea retirada del acta: "${removed.title}"`, 'info');
+    }
+
+    /* CREAR NUEVA TAREA MANUAL DESDE EL MODAL DE REUNIÓN */
+    function createNewTaskFromCurrentMeeting() {
+      const checkedProjects = Array.from(document.querySelectorAll('#meeting-projects-checkboxes input[type="checkbox"]:checked')).map(c => c.value);
+      const prjId = checkedProjects.length === 1 ? checkedProjects[0] : (checkedProjects[0] || null);
+
+      const tempId = 'draft-tsk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+      const newTaskDraft = {
+        id: tempId,
+        code: 'TSK-(Pendiente)',
+        title: 'Nueva Tarea de Reunión',
+        description: `Compromiso surgido de la reunión "${document.getElementById('meeting-title-input').value.trim() || 'Reunión'}".`,
+        assignedTo: '',
+        projectId: prjId,
+        meetingId: null,
+        priority: 'media',
+        status: 'pendiente',
+        startDate: new Date().toISOString().split('T')[0],
+        dueDate: null,
+        blockedBy: [],
+        subtasks: [],
+        isDraft: true
+      };
+
+      currentMeetingTasksBuffer.push(newTaskDraft);
+      renderMeetingTasksBuffer();
+      openTaskFromMeetingBuffer(tempId);
+    }
+
+    /* CONVERTIR TEXTO ENTRE "" "" EN TAREAS PREPARADAS (SIN DUPLICADOS) */
+    function convertNotesSelectionToTask() {
+      const textarea = document.getElementById('meeting-notes-input');
+      const text = textarea ? textarea.value : '';
+
+      if (!text.trim()) {
+        showToast('Escribe texto en el bloc de notas usando ""tarea"" (ej: ""@Diego tarea x"")', 'warning');
+        return;
+      }
+
+      // Proyectos seleccionados en la reunión
+      const checkedProjects = Array.from(document.querySelectorAll('#meeting-projects-checkboxes input[type="checkbox"]:checked')).map(c => c.value);
+      const defaultPrjId = checkedProjects.length === 1 ? checkedProjects[0] : (checkedProjects[0] || null);
+
+      let extractedItems = [];
+
+      // 1. Extraer todas las cadenas entre comillas dobles dobles: ""..."" o tipográficas ““...”” o «...»
+      const doubleQuotesRegex = /(?:""|[“«]{1,2})\s*([^"”»\r\n]+?)\s*(?:""|[”»]{1,2})/g;
+      let match;
+      while ((match = doubleQuotesRegex.exec(text)) !== null) {
+        const candidate = match[1].trim();
+        if (candidate) extractedItems.push(candidate);
+      }
+
+      // 2. Si no encontró, buscar comillas simples "..." o “...”
+      if (extractedItems.length === 0) {
+        const singleQuotesRegex = /["“«]\s*([^"”»\r\n]+?)\s*["”»]/g;
+        while ((match = singleQuotesRegex.exec(text)) !== null) {
+          const candidate = match[1].trim();
+          if (candidate) extractedItems.push(candidate);
+        }
+      }
+
+      // 3. Fallback: selección con cursor
+      if (extractedItems.length === 0) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        if (start !== end) {
+          const selection = text.substring(start, end).trim();
+          if (selection) extractedItems.push(selection);
+        }
+      }
+
+      if (extractedItems.length === 0) {
+        showToast('No se encontraron tareas entre "" "" en las notas. Ej: ""@Diego tarea x"" o ""tarea y""', 'warning');
+        return;
+      }
+
+      let addedCount = 0;
+      let duplicateCount = 0;
+
+      extractedItems.forEach(rawItem => {
+        // Detectar si hay @Mención de responsable
+        const mentionMatch = rawItem.match(/@([a-zA-Z0-9_\u00C0-\u017F]+)/);
+        let assignee = '';
+        if (mentionMatch) {
+          assignee = mentionMatch[1];
+          registerMemberIfNeeded(assignee);
+        }
+
+        const cleanTitle = rawItem.replace(/@[a-zA-Z0-9_\u00C0-\u017F]+/g, '').trim();
+        if (!cleanTitle) return;
+
+        // Comprobar si ya existe en el buffer de la reunión para evitar duplicados
+        const existsInBuffer = currentMeetingTasksBuffer.some(t => 
+          t.title.trim().toLowerCase() === cleanTitle.toLowerCase()
+        );
+        if (existsInBuffer) {
+          duplicateCount++;
+          return;
+        }
+
+        const tempId = 'draft-tsk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+        currentMeetingTasksBuffer.push({
+          id: tempId,
+          code: 'TSK-(Pendiente)',
+          title: cleanTitle,
+          description: `Compromiso surgido de la reunión "${document.getElementById('meeting-title-input').value.trim() || 'Reunión'}".`,
+          assignedTo: assignee,
+          projectId: defaultPrjId,
+          meetingId: null,
+          priority: 'media',
+          status: 'pendiente',
+          startDate: new Date().toISOString().split('T')[0],
+          dueDate: null,
+          blockedBy: [],
+          subtasks: [],
+          isDraft: true
+        });
+        addedCount++;
+      });
+
+      renderMeetingTasksBuffer();
+
+      if (addedCount > 0) {
+        showToast(`✓ Se han añadido ${addedCount} tarea(s) en la lista inferior (pendientes de guardar)`, 'success');
+      } else if (duplicateCount > 0) {
+        showToast(`Las tareas entre "" "" ya estaban añadidas en la lista inferior`, 'info');
+      }
+    }
+
+    /* GUARDAR REUNIÓN Y ACTA: CONFIRMAR DEFINITIVAMENTE LAS TAREAS */
     function handleSaveMeeting(e) {
       e.preventDefault();
       const id = document.getElementById('meeting-id').value;
@@ -6501,14 +6981,84 @@
       const attendeesRaw = document.getElementById('meeting-attendees-input').value.trim();
       const notes = document.getElementById('meeting-notes-input').value;
 
-      // Proyectos seleccionados (pueden ser 0, 1 o varios)
+      // Proyectos seleccionados
       const checkedProjects = Array.from(document.querySelectorAll('#meeting-projects-checkboxes input[type="checkbox"]:checked')).map(c => c.value);
 
-      // Extraer y registrar miembros en asistentes y notas
+      // Aviso si no se ha seleccionado ningún proyecto vinculado
+      if (checkedProjects.length === 0) {
+        const proceedWithoutProject = confirm(
+          '⚠️ Aviso: No has seleccionado ningún proyecto vinculado a esta reunión.\n\n' +
+          '¿Deseas guardarla como reunión transversal (sin proyecto)?\n\n' +
+          '• Pulsa "Aceptar" para guardarla sin proyecto vinculado.\n' +
+          '• Pulsa "Cancelar" para volver al formulario y seleccionar un proyecto.'
+        );
+        if (!proceedWithoutProject) {
+          showToast('Selecciona al menos un proyecto vinculado para la reunión', 'warning');
+          const checkboxesContainer = document.getElementById('meeting-projects-checkboxes');
+          if (checkboxesContainer) {
+            checkboxesContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            checkboxesContainer.style.outline = '2px solid var(--warning, #f59e0b)';
+            checkboxesContainer.style.borderRadius = 'var(--radius-md)';
+            setTimeout(() => {
+              checkboxesContainer.style.outline = '';
+            }, 3000);
+          }
+          return;
+        }
+      }
+
       extractAndRegisterMentionsFromText(attendeesRaw);
       extractAndRegisterMentionsFromText(notes);
-
       const attendees = attendeesRaw.split(/\s+/).filter(a => a.startsWith('@')).map(a => a.trim());
+
+      const meetingIdToUse = id || ('meet-' + Date.now());
+
+      // 1. Eliminar tareas que se hayan borrado de este acta
+      if (currentMeetingDeletedTaskIds.length > 0) {
+        appData.tasks = appData.tasks.filter(t => !currentMeetingDeletedTaskIds.includes(t.id));
+      }
+
+      // 2. Procesar tareas del buffer y guardarlas definitivamente
+      const finalActionItemIds = [];
+      currentMeetingTasksBuffer.forEach(bt => {
+        if (bt.isDraft) {
+          const nextNum = appData.tasks.length + 101;
+          const realTaskId = 'tsk-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+          const realTask = {
+            id: realTaskId,
+            code: 'TSK-' + nextNum,
+            title: bt.title,
+            description: bt.description || '',
+            assignedTo: bt.assignedTo || '',
+            projectId: bt.projectId || (checkedProjects.length === 1 ? checkedProjects[0] : null),
+            meetingId: meetingIdToUse,
+            priority: bt.priority || 'media',
+            status: bt.status || 'pendiente',
+            startDate: bt.startDate || new Date().toISOString().split('T')[0],
+            dueDate: bt.dueDate || null,
+            blockedBy: bt.blockedBy || [],
+            subtasks: bt.subtasks || []
+          };
+          appData.tasks.push(realTask);
+          finalActionItemIds.push(realTaskId);
+          if (realTask.assignedTo) registerMemberIfNeeded(realTask.assignedTo);
+        } else {
+          // Tarea existente: actualizar datos
+          const existing = appData.tasks.find(t => t.id === bt.id);
+          if (existing) {
+            existing.meetingId = meetingIdToUse;
+            existing.title = bt.title;
+            existing.description = bt.description || existing.description;
+            existing.assignedTo = bt.assignedTo;
+            existing.projectId = bt.projectId;
+            existing.priority = bt.priority;
+            existing.status = bt.status;
+            existing.dueDate = bt.dueDate;
+            finalActionItemIds.push(existing.id);
+            if (existing.assignedTo) registerMemberIfNeeded(existing.assignedTo);
+          }
+        }
+      });
 
       if (id) {
         const meet = appData.meetings.find(m => m.id === id);
@@ -6519,91 +7069,30 @@
           meet.projectIds = checkedProjects;
           meet.attendees = attendees;
           meet.notes = notes;
+          meet.actionItemIds = finalActionItemIds;
         }
       } else {
         const newMeet = {
-          id: 'meet-' + Date.now(),
+          id: meetingIdToUse,
           title,
           date,
           location,
           projectIds: checkedProjects,
           attendees,
           notes,
-          actionItemIds: []
+          actionItemIds: finalActionItemIds
         };
         appData.meetings.push(newMeet);
       }
 
+      currentMeetingTasksBuffer = [];
+      currentMeetingDeletedTaskIds = [];
+      editingTaskFromMeetingBuffer = null;
+
       saveData();
       closeModal('modal-meeting');
       renderActiveView();
-      showToast('Reunión y acta guardadas correctamente', 'success');
-    }
-
-    /* CONVERTIR NOTA O LÍNEA DE REUNIÓN DIRECTAMENTE EN TAREA */
-    function convertNotesSelectionToTask() {
-      const textarea = document.getElementById('meeting-notes-input');
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      let text = '';
-
-      if (start !== end) {
-        text = textarea.value.substring(start, end).trim();
-      } else {
-        // Seleccionar línea actual
-        const lines = textarea.value.split('\n');
-        let currentPos = 0;
-        for (let l of lines) {
-          if (start >= currentPos && start <= currentPos + l.length) {
-            text = l.replace(/^[-*•]\s*/, '').trim();
-            break;
-          }
-          currentPos += l.length + 1;
-        }
-      }
-
-      if (!text) {
-        showToast('Selecciona un fragmento de texto o escribe una línea para convertirla en tarea', 'warning');
-        return;
-      }
-
-      // Proyectos de la reunión actual
-      const checkedProjects = Array.from(document.querySelectorAll('#meeting-projects-checkboxes input[type="checkbox"]:checked')).map(c => c.value);
-      const meetingId = document.getElementById('meeting-id').value;
-
-      // Detectar si hay @Mención de responsable en el texto
-      const mentionMatch = text.match(/@([a-zA-Z0-9_\u00C0-\u017F]+)/);
-      let assignee = '';
-      if (mentionMatch) {
-        assignee = mentionMatch[1];
-        registerMemberIfNeeded(assignee);
-      }
-
-      const nextNum = appData.tasks.length + 101;
-      const newTask = {
-        id: 'tsk-' + Date.now(),
-        code: 'TSK-' + nextNum,
-        title: text.replace(/@[a-zA-Z0-9_\u00C0-\u017F]+/g, '').trim(),
-        description: `Tarea surgida de la reunión "${document.getElementById('meeting-title-input').value}".`,
-        assignedTo: assignee,
-        projectId: checkedProjects.length === 1 ? checkedProjects[0] : null,
-        meetingId: meetingId || null,
-        priority: 'media',
-        status: 'pendiente',
-        startDate: new Date().toISOString().split('T')[0],
-        dueDate: null,
-        blockedBy: [],
-        subtasks: []
-      };
-
-      appData.tasks.push(newTask);
-      saveData();
-      showToast(`¡Tarea creada desde el acta! [${newTask.code}]`, 'success');
-
-      // Actualizar vista de actas si la reunión ya estaba guardada
-      if (meetingId) {
-        openEditMeetingModal(meetingId);
-      }
+      showToast('Reunión y actas guardadas correctamente', 'success');
     }
 
     /* PROYECTO: CREAR / EDITAR */
@@ -6766,10 +7255,54 @@
 
       // Búsqueda y filtros
       document.getElementById('global-search').addEventListener('input', () => renderActiveView());
-      document.getElementById('filter-project').addEventListener('change', () => renderActiveView());
+      document.getElementById('filter-project').addEventListener('change', (e) => {
+        const val = e.target.value;
+        const gPrj = document.getElementById('git-graph-project-filter');
+        if (gPrj) gPrj.value = val;
+        const lPrj = document.getElementById('lineage-project-filter');
+        if (lPrj) lPrj.value = val;
+        const oSel = document.getElementById('lineage-origin-filter');
+        if (oSel) {
+          if (val === 'none') {
+            oSel.value = 'transversal';
+          } else if (val !== 'all' && oSel.value === 'transversal') {
+            oSel.value = 'all';
+          }
+        }
+        renderActiveView();
+      });
       document.getElementById('filter-member').addEventListener('change', () => renderActiveView());
       document.getElementById('filter-priority').addEventListener('change', () => renderActiveView());
       document.getElementById('filter-block-status').addEventListener('change', () => renderActiveView());
+
+      // Sincronización dinámica de Proyecto -> Reuniones en Modal de Tarea
+      const taskProjectSelect = document.getElementById('task-project-select');
+      if (taskProjectSelect) {
+        taskProjectSelect.addEventListener('change', (e) => {
+          const selectedPrjId = e.target.value;
+          updateTaskMeetingOptions(selectedPrjId);
+          renderTaskDependenciesLists(document.getElementById('task-id').value || null);
+        });
+      }
+
+      // Sincronización inversa Reunión -> Proyecto (si no había proyecto y la reunión tiene 1 proyecto específico)
+      const taskMeetingSelect = document.getElementById('task-meeting-select');
+      if (taskMeetingSelect) {
+        taskMeetingSelect.addEventListener('change', (e) => {
+          const mId = e.target.value;
+          if (!mId) return;
+          const meet = appData.meetings.find(m => m.id === mId);
+          if (!meet) return;
+          const pSelect = document.getElementById('task-project-select');
+          if (pSelect && !pSelect.value && Array.isArray(meet.projectIds) && meet.projectIds.length === 1) {
+            pSelect.value = meet.projectIds[0];
+            updateTaskMeetingOptions(meet.projectIds[0], mId);
+            renderTaskDependenciesLists(document.getElementById('task-id').value || null);
+            const prj = appData.projects.find(p => p.id === meet.projectIds[0]);
+            showToast(`Proyecto asignado automáticamente: ${prj ? prj.name : ''}`, 'info');
+          }
+        });
+      }
 
       // Atajo de teclado '/' para búsqueda, 'Esc' para modales, 'N' para nueva tarea, 'M' para reunión
       window.addEventListener('keydown', (e) => {
@@ -6966,8 +7499,14 @@
     // Exponer funciones para interacción global y handlers inline
     window.openNewTaskModal = openNewTaskModal;
     window.openEditTaskModal = openEditTaskModal;
+    window.updateTaskMeetingOptions = updateTaskMeetingOptions;
+    window.createNewTaskFromCurrentMeeting = createNewTaskFromCurrentMeeting;
+    window.syncProjectFilterFromView = syncProjectFilterFromView;
+    window.handleLineageOriginChange = handleLineageOriginChange;
     window.openNewMeetingModal = openNewMeetingModal;
     window.openEditMeetingModal = openEditMeetingModal;
+    window.openTaskFromMeetingBuffer = openTaskFromMeetingBuffer;
+    window.removeTaskFromMeetingBuffer = removeTaskFromMeetingBuffer;
     window.openNewProjectModal = openNewProjectModal;
     window.openEditProjectModal = openEditProjectModal;
     window.closeModal = closeModal;
