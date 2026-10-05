@@ -3812,6 +3812,7 @@
 
     function renderActiveView() {
       filterTasksData(); // aplica filtros activos
+      updateAllViewCounts();
       if (activeView === 'kanban') renderKanbanBoard();
       else if (activeView === 'gantt') renderGanttView();
       else if (activeView === 'dependencies') renderDependenciesView();
@@ -7633,10 +7634,35 @@
     }
 
     function updateAllViewCounts() {
-      const activeTasks = appData.tasks.filter(t => isProjectActive(t.projectId));
-      const activeMeetings = appData.meetings.filter(m => isMeetingActive(m));
-      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
-      const blockedCount = activeTasks.filter(t => isTaskBlocked(t) || t.status === 'bloqueada').length;
+      const prjFilter = document.getElementById('filter-project')?.value || 'all';
+
+      // 1. Tareas pertenecientes a proyectos en curso
+      const baseActiveTasks = (appData.tasks || []).filter(t => isProjectActive(t.projectId));
+      let currentTasks = baseActiveTasks;
+      if (prjFilter !== 'all') {
+        if (prjFilter === 'none') {
+          currentTasks = baseActiveTasks.filter(t => !t.projectId);
+        } else {
+          currentTasks = baseActiveTasks.filter(t => t.projectId === prjFilter);
+        }
+      }
+
+      // 2. Reuniones activas asociadas al contexto
+      const baseActiveMeetings = (appData.meetings || []).filter(m => isMeetingActive(m));
+      let currentMeetings = baseActiveMeetings;
+      if (prjFilter !== 'all') {
+        if (prjFilter === 'none') {
+          currentMeetings = baseActiveMeetings.filter(m => !m.projectIds || m.projectIds.length === 0);
+        } else {
+          currentMeetings = baseActiveMeetings.filter(m => Array.isArray(m.projectIds) && m.projectIds.includes(prjFilter));
+        }
+      }
+
+      // 3. Proyectos activos
+      const activeProjects = (appData.projects || []).filter(p => p.status !== 'cerrado');
+
+      // 4. Bloqueadas dentro del contexto del proyecto seleccionado
+      const blockedCount = currentTasks.filter(t => isTaskBlocked(t) || t.status === 'bloqueada').length;
 
       const badgeKanban = document.getElementById('badge-kanban-count');
       const badgeMeetings = document.getElementById('badge-meetings-count');
@@ -7644,10 +7670,18 @@
       const badgeLineage = document.getElementById('badge-lineage-count');
       const badgeBlocked = document.getElementById('badge-blocked-count');
 
-      if (badgeKanban) badgeKanban.textContent = activeTasks.length;
-      if (badgeMeetings) badgeMeetings.textContent = activeMeetings.length;
-      if (badgeProjects) badgeProjects.textContent = activeProjects.length;
-      if (badgeLineage) badgeLineage.textContent = activeTasks.length;
+      if (badgeKanban) badgeKanban.textContent = currentTasks.length;
+      if (badgeMeetings) badgeMeetings.textContent = currentMeetings.length;
+      if (badgeProjects) {
+        if (prjFilter === 'all') {
+          badgeProjects.textContent = activeProjects.length;
+        } else if (prjFilter === 'none') {
+          badgeProjects.textContent = 0;
+        } else {
+          badgeProjects.textContent = 1;
+        }
+      }
+      if (badgeLineage) badgeLineage.textContent = currentTasks.length;
       if (badgeBlocked) badgeBlocked.textContent = blockedCount;
     }
 
