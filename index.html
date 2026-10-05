@@ -919,7 +919,7 @@
     }
 
     /* ==========================================================================
-       3. VISTA GANTT / CRONOGRAMA INTERACTIVO
+       3. VISTA GANTT / CRONOGRAMA INTERACTIVO (STICKY COLUMN + HORIZONTAL SCROLL)
        ========================================================================== */
     .gantt-wrapper {
       background: var(--bg-surface);
@@ -930,12 +930,192 @@
       flex-direction: column;
       gap: 16px;
       box-shadow: var(--shadow-sm);
-      overflow-x: auto;
+      min-height: 480px;
     }
 
-    .gantt-svg-container {
-      min-width: 900px;
+    .gantt-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .gantt-top-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .gantt-legend-list {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .gantt-legend-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .gantt-scroll-viewport {
+      width: 100%;
       overflow-x: auto;
+      overflow-y: hidden;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      position: relative;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-subtle) transparent;
+    }
+
+    .gantt-scroll-viewport::-webkit-scrollbar {
+      height: 8px;
+    }
+    .gantt-scroll-viewport::-webkit-scrollbar-track {
+      background: var(--bg-surface);
+    }
+    .gantt-scroll-viewport::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 4px;
+    }
+    .gantt-scroll-viewport::-webkit-scrollbar-thumb:hover {
+      background: var(--text-dim);
+    }
+
+    .gantt-layout-container {
+      display: flex;
+      position: relative;
+      width: max-content;
+      min-width: 100%;
+    }
+
+    /* COLUMNA IZQUIERDA FIJA (STICKY) */
+    .gantt-sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 25;
+      width: 280px;
+      min-width: 280px;
+      max-width: 280px;
+      background: var(--bg-surface);
+      border-right: 2px solid var(--border-subtle);
+      box-shadow: 4px 0 12px rgba(0, 0, 0, 0.28);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .gantt-sticky-header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-subtle);
+      user-select: none;
+    }
+
+    .gantt-sticky-row {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      background: var(--bg-surface);
+      cursor: pointer;
+      transition: background 0.15s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .gantt-sticky-row:hover {
+      background: var(--bg-card-hover);
+    }
+    .gantt-sticky-row:nth-child(even) {
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .gantt-sticky-code {
+      font-family: var(--font-mono);
+      font-size: 0.73rem;
+      font-weight: 700;
+      color: var(--text-main);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.06);
+      flex-shrink: 0;
+    }
+
+    .gantt-sticky-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-main);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    /* TIMELINE SCROLLABLE */
+    .gantt-timeline-area {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .gantt-timeline-header {
+      height: 48px;
+      display: flex;
+      position: relative;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-subtle);
+      user-select: none;
+    }
+
+    .gantt-day-header-cell {
+      width: 44px;
+      min-width: 44px;
+      max-width: 44px;
+      box-sizing: border-box;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+    .gantt-day-header-cell.today {
+      background: rgba(79, 70, 229, 0.16);
+      color: #818cf8;
+      font-weight: 700;
+    }
+    .gantt-day-header-cell.weekend {
+      background: rgba(0, 0, 0, 0.14);
+    }
+
+    .gantt-timeline-svg-wrapper {
+      position: relative;
+      display: block;
     }
 
     /* ==========================================================================
@@ -2355,16 +2535,26 @@
       <!-- VISTA 2: GANTT / CRONOGRAMA -->
       <section class="view-content" id="view-gantt">
         <div class="gantt-wrapper">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 style="font-family:var(--font-display); font-size:1.1rem; font-weight:700;">Cronograma de Actividades e Hitos</h3>
-            <div style="font-size:0.8rem; color:var(--text-muted); display:flex; gap:16px;">
-              <span>🔷 Tarea Regular</span>
-              <span>🔒 Tarea Bloqueada</span>
-              <span>🟣 Hito de Reunión</span>
+          <div class="gantt-top-bar">
+            <div>
+              <h3 style="font-family:var(--font-display); font-size:1.15rem; font-weight:700;">Cronograma de Actividades e Hitos</h3>
+              <p style="font-size:0.8rem; color:var(--text-muted); margin:2px 0 0 0;" id="gantt-date-range-desc">Línea de tiempo con scroll horizontal y columna fija</p>
+            </div>
+            <div class="gantt-top-actions">
+              <div class="gantt-legend-list">
+                <span class="gantt-legend-pill"><span class="legend-dot" style="background:var(--primary);"></span> Tarea Regular</span>
+                <span class="gantt-legend-pill"><span class="legend-dot" style="background:var(--blocked);"></span> Bloqueada</span>
+                <span class="gantt-legend-pill"><span class="legend-dot" style="background:var(--success);"></span> Completada</span>
+                <span class="gantt-legend-pill"><span class="legend-dot" style="background:#a855f7;"></span> Reunión</span>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btn-gantt-today" onclick="scrollToGanttToday()" title="Centrar cronograma en el día de hoy">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Hoy</span>
+              </button>
             </div>
           </div>
-          <div class="gantt-svg-container" id="gantt-svg-container">
-            <!-- Renderizado dinámico del Gantt en SVG -->
+          <div class="gantt-scroll-viewport" id="gantt-scroll-viewport">
+            <!-- Renderizado dinámico con columna fija sticky y timeline scrollable -->
           </div>
         </div>
       </section>
@@ -2734,9 +2924,15 @@
                 <option value="completada_avisos">Completada con Avisos</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="task-due-date">Fecha Límite</label>
-              <input type="date" class="form-control" id="task-due-date">
+            <div class="form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div>
+                <label class="form-label" for="task-start-date">Fecha Inicio</label>
+                <input type="date" class="form-control" id="task-start-date">
+              </div>
+              <div>
+                <label class="form-label" for="task-due-date">Fecha Límite</label>
+                <input type="date" class="form-control" id="task-due-date">
+              </div>
             </div>
           </div>
 
@@ -4005,102 +4201,249 @@
     }
 
     /* ==========================================================================
-       RENDERIZADO: 2. GANTT / CRONOGRAMA INTERACTIVO
+       RENDERIZADO: 2. GANTT / CRONOGRAMA INTERACTIVO CON COLUMNA STICKY Y SCROLL HORIZONTAL
        ========================================================================== */
+    function parseGanttDate(str) {
+      if (!str) return null;
+      const clean = String(str).split('T')[0];
+      const p = clean.split('-');
+      if (p.length !== 3) return null;
+      const y = parseInt(p[0], 10);
+      const m = parseInt(p[1], 10) - 1;
+      const d = parseInt(p[2], 10);
+      if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+      return new Date(y, m, d);
+    }
+
+    function getGanttDayDiff(d1, d2) {
+      if (!d1 || !d2) return 0;
+      const u1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
+      const u2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+      return Math.round((u2 - u1) / 86400000);
+    }
+
     function renderGanttView() {
-      const container = document.getElementById('gantt-svg-container');
+      const container = document.getElementById('gantt-scroll-viewport');
       if (!container) return;
 
-      const tasksWithDates = filteredTasksCache.filter(t => t.dueDate);
+      const tasksWithDates = filteredTasksCache.filter(t => t.dueDate || t.startDate);
       if (tasksWithDates.length === 0) {
-        container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted);">No hay tareas con fecha límite para representar en el cronograma.</div>`;
+        container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted);">No hay tareas con fecha programada para representar en el cronograma. Puedes asignar Fecha de Inicio o Fecha Límite editando cualquier tarea.</div>`;
+        const descEl = document.getElementById('gantt-date-range-desc');
+        if (descEl) descEl.textContent = 'Sin tareas programadas';
         return;
       }
 
-      // Rango de fechas (mínima y máxima)
+      // Rango de fechas (mínima y máxima) usando fechas puras de calendario (inmune a DST)
       const now = new Date();
-      let minDate = new Date(now.getTime() - 7 * 86400000);
-      let maxDate = new Date(now.getTime() + 21 * 86400000);
+      let minDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+      let maxDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 21);
 
       tasksWithDates.forEach(t => {
-        const d = new Date(t.dueDate);
-        if (d < minDate) minDate = new Date(d.getTime() - 2 * 86400000);
-        if (d > maxDate) maxDate = new Date(d.getTime() + 4 * 86400000);
+        const s = parseGanttDate(t.startDate);
+        const d = parseGanttDate(t.dueDate);
+        if (s && s < minDate) minDate = new Date(s.getFullYear(), s.getMonth(), s.getDate() - 4);
+        if (d && d < minDate) minDate = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 4);
+        if (s && s > maxDate) maxDate = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6);
+        if (d && d > maxDate) maxDate = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 6);
       });
 
-      const totalDays = Math.max(15, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)));
-      const dayWidth = 42;
-      const rowHeight = 44;
-      const headerHeight = 50;
-      const svgWidth = Math.max(900, totalDays * dayWidth + 260);
-      const svgHeight = headerHeight + (tasksWithDates.length * rowHeight) + 40;
+      appData.meetings.forEach(m => {
+        const md = parseGanttDate(m.date);
+        if (md && md < minDate) minDate = new Date(md.getFullYear(), md.getMonth(), md.getDate() - 3);
+        if (md && md > maxDate) maxDate = new Date(md.getFullYear(), md.getMonth(), md.getDate() + 5);
+      });
 
-      // Días y cabecera
+      // Total de columnas de días asegurando un horizonte amplio para scroll fluido
+      const totalDays = Math.max(35, getGanttDayDiff(minDate, maxDate) + 1);
+      const dayWidth = 44;
+      const rowHeight = 44;
+      const timelineWidth = totalDays * dayWidth;
+      const timelineHeight = tasksWithDates.length * rowHeight;
+
+      const descEl = document.getElementById('gantt-date-range-desc');
+      if (descEl) {
+        descEl.textContent = `${tasksWithDates.length} tarea(s) programada(s) • Horizonte de ${totalDays} días con scroll horizontal`;
+      }
+
+      // 1. Generar Cabecera de Días con días calendario puros y posición de Hoy
       let daysHeaderHTML = '';
+      let todayX = null;
+      const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
       for (let i = 0; i < totalDays; i++) {
-        const curD = new Date(minDate.getTime() + i * 86400000);
-        const x = 240 + i * dayWidth;
-        const isToday = curD.toDateString() === now.toDateString();
+        const curD = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate() + i);
+        const isToday = curD.getTime() === todayZero.getTime();
+        const isWeekend = curD.getDay() === 0 || curD.getDay() === 6;
+        if (isToday) todayX = i * dayWidth;
+
         daysHeaderHTML += `
-          <line x1="${x}" y1="0" x2="${x}" y2="${svgHeight}" stroke="${isToday ? 'rgba(79, 70, 229, 0.4)' : 'rgba(255,255,255,0.05)'}" stroke-width="${isToday ? 2 : 1}"/>
-          <text x="${x + dayWidth / 2}" y="30" fill="${isToday ? '#818cf8' : 'var(--text-dim)'}" font-size="11" text-anchor="middle" font-weight="${isToday ? 'bold' : 'normal'}">${curD.getDate()}/${curD.getMonth() + 1}</text>
+          <div class="gantt-day-header-cell ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}">
+            <span style="font-size:0.65rem; opacity:0.8;">${dayNames[curD.getDay()]}</span>
+            <span style="font-weight:${isToday ? '700' : '500'}; font-size:0.75rem;">${curD.getDate()}/${curD.getMonth() + 1}</span>
+          </div>
+        `;
+      }
+      window._ganttTodayX = todayX !== null ? todayX : 0;
+
+      // 2. Generar Filas de la Columna Izquierda Fija (Sticky)
+      let stickyRowsHTML = '';
+      tasksWithDates.forEach(task => {
+        stickyRowsHTML += `
+          <div class="gantt-sticky-row" onclick="openEditTaskModal('${task.id}')" title="Clic para editar: [${task.code}] ${escapeHTML(task.title)}">
+            <span class="gantt-sticky-code">${task.code}</span>
+            <span class="gantt-sticky-title">${escapeHTML(task.title)}</span>
+          </div>
+        `;
+      });
+
+      // 3. Generar SVG del Timeline: líneas de rejilla
+      let gridLinesHTML = '';
+      for (let i = 0; i < totalDays; i++) {
+        const x = i * dayWidth;
+        const curD = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate() + i);
+        const isWeekend = curD.getDay() === 0 || curD.getDay() === 6;
+        if (isWeekend) {
+          gridLinesHTML += `<rect x="${x}" y="0" width="${dayWidth}" height="${timelineHeight}" fill="rgba(0,0,0,0.06)"/>`;
+        }
+        gridLinesHTML += `<line x1="${x}" y1="0" x2="${x}" y2="${timelineHeight}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`;
+      }
+
+      // Línea de Hoy
+      let todayLineHTML = '';
+      if (todayX !== null) {
+        todayLineHTML = `
+          <line x1="${todayX + dayWidth / 2}" y1="0" x2="${todayX + dayWidth / 2}" y2="${timelineHeight}" stroke="#818cf8" stroke-width="2" stroke-dasharray="4,2"/>
         `;
       }
 
-      // Tareas barras
-      let tasksRowsHTML = '';
+      // 4. Barras de tareas con alineación exacta de columnas
+      let taskBarsHTML = '';
       tasksWithDates.forEach((task, index) => {
-        const y = headerHeight + index * rowHeight;
+        const y = index * rowHeight;
         const project = appData.projects.find(p => p.id === task.projectId);
-        const taskDue = new Date(task.dueDate);
-        const taskStart = task.startDate ? new Date(task.startDate) : new Date(taskDue.getTime() - 3 * 86400000);
 
-        const startDiffDays = Math.max(0, (taskStart - minDate) / (1000 * 60 * 60 * 24));
-        const durationDays = Math.max(1, (taskDue - taskStart) / (1000 * 60 * 60 * 24));
+        let taskStart = parseGanttDate(task.startDate);
+        let taskDue = parseGanttDate(task.dueDate);
 
-        const barX = 240 + (startDiffDays * dayWidth);
-        const barW = Math.max(dayWidth, durationDays * dayWidth);
-        const barColor = isTaskBlocked(task) ? 'var(--blocked)' : (task.status === 'completada' ? 'var(--success)' : (task.status === 'completada_avisos' ? 'var(--warning)' : (project ? project.color : 'var(--primary)')));
+        if (taskStart && !taskDue) {
+          taskDue = new Date(taskStart.getTime());
+        } else if (!taskStart && taskDue) {
+          let predMaxDue = null;
+          if (Array.isArray(task.blockedBy) && task.blockedBy.length > 0) {
+            task.blockedBy.forEach(bId => {
+              const bTask = appData.tasks.find(x => x.id === bId);
+              if (bTask) {
+                const bDate = parseGanttDate(bTask.dueDate) || parseGanttDate(bTask.startDate);
+                if (bDate && (!predMaxDue || bDate > predMaxDue)) predMaxDue = bDate;
+              }
+            });
+          }
+          if (predMaxDue && predMaxDue <= taskDue) {
+            taskStart = new Date(predMaxDue.getFullYear(), predMaxDue.getMonth(), predMaxDue.getDate() + 1);
+          } else {
+            taskStart = new Date(taskDue.getTime());
+          }
+        } else if (taskStart && taskDue && taskStart > taskDue) {
+          taskDue = new Date(taskStart.getTime());
+        }
 
-        tasksRowsHTML += `
-          <rect x="0" y="${y}" width="${svgWidth}" height="${rowHeight}" fill="${index % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent'}"/>
-          <text x="16" y="${y + 26}" fill="var(--text-main)" font-size="12" font-weight="600" cursor="pointer" onclick="openEditTaskModal('${task.id}')">${task.code} - ${escapeHTML(task.title.substring(0, 24))}</text>
+        // Posición de inicio y duración inclusiva exacta por días de calendario
+        const startCol = getGanttDayDiff(minDate, taskStart);
+        // Duración inclusiva: una tarea del 16 al 21 abarca exactamente 6 días enteros
+        const durationCols = Math.max(1, getGanttDayDiff(taskStart, taskDue) + 1);
+
+        const barX = startCol * dayWidth + 2;
+        const barW = Math.max(dayWidth - 4, durationCols * dayWidth - 4);
+        const barH = 26;
+        const barY = y + (rowHeight - barH) / 2;
+
+        const barColor = isTaskBlocked(task) 
+          ? 'var(--blocked)' 
+          : (task.status === 'completada' ? 'var(--success)' : (task.status === 'completada_avisos' ? 'var(--warning)' : (project ? project.color : 'var(--primary)')));
+
+        const startStr = task.startDate || `${taskStart.getFullYear()}-${String(taskStart.getMonth() + 1).padStart(2, '0')}-${String(taskStart.getDate()).padStart(2, '0')}`;
+        const dueStr = task.dueDate || `${taskDue.getFullYear()}-${String(taskDue.getMonth() + 1).padStart(2, '0')}-${String(taskDue.getDate()).padStart(2, '0')}`;
+
+        taskBarsHTML += `
+          <!-- Fondo de fila -->
+          <rect x="0" y="${y}" width="${timelineWidth}" height="${rowHeight}" fill="${index % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent'}"/>
           
           <!-- Barra de Gantt -->
-          <rect x="${barX}" y="${y + 10}" width="${barW}" height="22" rx="4" fill="${barColor}" opacity="0.85" cursor="pointer" onclick="openEditTaskModal('${task.id}')">
-            <title>${task.code}: ${escapeHTML(task.title)} (Vence: ${task.dueDate})</title>
+          <rect x="${barX}" y="${barY}" width="${barW}" height="${barH}" rx="5" fill="${barColor}" opacity="0.9" cursor="pointer" onclick="openEditTaskModal('${task.id}')">
+            <title>${task.code}: ${escapeHTML(task.title)}&#10;Inicio: ${startStr} | Límite: ${dueStr}${task.assignedTo ? ' | @' + task.assignedTo : ''}</title>
           </rect>
-          <text x="${barX + 8}" y="${y + 25}" fill="#ffffff" font-size="10" font-weight="600" pointer-events="none">${escapeHTML(task.assignedTo ? '@' + task.assignedTo : '')}</text>
+          <text x="${barX + 8}" y="${barY + 17}" fill="#ffffff" font-size="11" font-weight="600" pointer-events="none">
+            ${escapeHTML(task.assignedTo ? '@' + task.assignedTo : task.code)}
+          </text>
         `;
       });
 
-      // Hitos de Reuniones en el Gantt
+      // 5. Hitos de Reuniones en el Gantt
       let meetingsMilestonesHTML = '';
       appData.meetings.forEach(meet => {
         if (!meet.date) return;
-        const mDate = new Date(meet.date);
-        if (mDate >= minDate && mDate <= maxDate) {
-          const diff = (mDate - minDate) / (1000 * 60 * 60 * 24);
-          const x = 240 + diff * dayWidth;
+        const mDate = parseGanttDate(meet.date);
+        if (mDate && mDate >= minDate && mDate <= maxDate) {
+          const diffCols = getGanttDayDiff(minDate, mDate);
+          const x = diffCols * dayWidth + (dayWidth / 2);
           meetingsMilestonesHTML += `
-            <line x1="${x}" y1="0" x2="${x}" y2="${svgHeight}" stroke="#c084fc" stroke-dasharray="3,3" stroke-width="1.5"/>
-            <polygon points="${x},10 ${x+8},22 ${x},34 ${x-8},22" fill="#a855f7" cursor="pointer" onclick="openEditMeetingModal('${meet.id}')">
+            <line x1="${x}" y1="0" x2="${x}" y2="${timelineHeight}" stroke="#c084fc" stroke-dasharray="3,3" stroke-width="1.5"/>
+            <polygon points="${x},6 ${x+7},16 ${x},26 ${x-7},16" fill="#a855f7" cursor="pointer" onclick="openEditMeetingModal('${meet.id}')">
               <title>Reunión: ${escapeHTML(meet.title)} (${formatDateTime(meet.date)})</title>
             </polygon>
           `;
         }
       });
 
+      // 6. Montar estructura final
       container.innerHTML = `
-        <svg width="${svgWidth}" height="${svgHeight}" style="font-family:var(--font-main);">
-          <!-- Encabezado y Guías de Días -->
-          <rect x="0" y="0" width="240" height="${headerHeight}" fill="var(--bg-card)"/>
-          <text x="16" y="30" fill="var(--text-dim)" font-size="11" font-weight="700">TAREA / COMPROMISO</text>
-          ${daysHeaderHTML}
-          ${tasksRowsHTML}
-          ${meetingsMilestonesHTML}
-        </svg>
+        <div class="gantt-layout-container">
+          <!-- Columna Fija Izquierda -->
+          <div class="gantt-sticky-col">
+            <div class="gantt-sticky-header">
+              <span>TAREA / COMPROMISO</span>
+            </div>
+            <div class="gantt-sticky-rows">
+              ${stickyRowsHTML}
+            </div>
+          </div>
+
+          <!-- Timeline desplazable con días y barras -->
+          <div class="gantt-timeline-area">
+            <div class="gantt-timeline-header">
+              ${daysHeaderHTML}
+            </div>
+            <div class="gantt-timeline-svg-wrapper">
+              <svg width="${timelineWidth}" height="${timelineHeight}" style="font-family:var(--font-main); display:block;">
+                ${gridLinesHTML}
+                ${todayLineHTML}
+                ${taskBarsHTML}
+                ${meetingsMilestonesHTML}
+              </svg>
+            </div>
+          </div>
+        </div>
       `;
+
+      // Auto-centrar en el día de hoy suavemente si no se ha scrolleado manualmente
+      setTimeout(() => {
+        if (container && todayX !== null && !container.dataset.userScrolled) {
+          container.scrollLeft = Math.max(0, todayX - 100);
+        }
+      }, 50);
+
+      container.onscroll = () => {
+        container.dataset.userScrolled = 'true';
+      };
+    }
+
+    function scrollToGanttToday() {
+      const container = document.getElementById('gantt-scroll-viewport');
+      if (container && window._ganttTodayX !== undefined) {
+        container.scrollTo({ left: Math.max(0, window._ganttTodayX - 100), behavior: 'smooth' });
+      }
     }
 
     /* ==========================================================================
@@ -6083,6 +6426,7 @@
       document.getElementById('task-assignee-input').value = task.assignedTo ? `@${task.assignedTo}` : '';
       document.getElementById('task-priority-select').value = task.priority;
       document.getElementById('task-status-select').value = task.status;
+      document.getElementById('task-start-date').value = task.startDate || '';
       document.getElementById('task-due-date').value = task.dueDate || '';
 
       populateTaskFormSelectors(task.id);
@@ -6240,7 +6584,7 @@
             meetingId: document.getElementById('task-meeting-select').value || null,
             priority: document.getElementById('task-priority-select').value,
             status: document.getElementById('task-status-select').value,
-            startDate: new Date().toISOString().split('T')[0],
+            startDate: document.getElementById('task-start-date')?.value || null,
             dueDate: document.getElementById('task-due-date').value || null,
             blockedBy: [...currentTaskBlockedByBuffer],
             subtasks: currentTaskSubtasksBuffer
@@ -6359,6 +6703,7 @@
       
       task.priority = document.getElementById('task-priority-select').value;
       task.status = document.getElementById('task-status-select').value;
+      task.startDate = document.getElementById('task-start-date')?.value || null;
       task.dueDate = document.getElementById('task-due-date').value || null;
       task.projectId = document.getElementById('task-project-select').value || null;
       task.meetingId = document.getElementById('task-meeting-select').value || null;
@@ -6522,6 +6867,7 @@
       const meetingId = document.getElementById('task-meeting-select').value || null;
       const priority = document.getElementById('task-priority-select').value;
       let status = document.getElementById('task-status-select').value;
+      const startDate = document.getElementById('task-start-date')?.value || null;
       const dueDate = document.getElementById('task-due-date').value || null;
 
       // Auto-registro de personas en asignado y descripción
@@ -6551,6 +6897,7 @@
         editingTaskFromMeetingBuffer.projectId = projectId;
         editingTaskFromMeetingBuffer.priority = priority;
         editingTaskFromMeetingBuffer.status = status;
+        editingTaskFromMeetingBuffer.startDate = startDate;
         editingTaskFromMeetingBuffer.dueDate = dueDate;
         editingTaskFromMeetingBuffer.blockedBy = [...currentTaskBlockedByBuffer];
         editingTaskFromMeetingBuffer.subtasks = currentTaskSubtasksBuffer;
@@ -6575,6 +6922,7 @@
           task.meetingId = meetingId;
           task.priority = priority;
           task.status = status;
+          task.startDate = startDate;
           task.dueDate = dueDate;
           task.blockedBy = [...currentTaskBlockedByBuffer];
           task.subtasks = currentTaskSubtasksBuffer;
@@ -6610,7 +6958,7 @@
           meetingId,
           priority,
           status,
-          startDate: new Date().toISOString().split('T')[0],
+          startDate,
           dueDate,
           blockedBy: [...currentTaskBlockedByBuffer],
           subtasks: currentTaskSubtasksBuffer
@@ -6873,6 +7221,7 @@
       document.getElementById('task-assignee-input').value = task.assignedTo ? `@${task.assignedTo}` : '';
       document.getElementById('task-priority-select').value = task.priority || 'media';
       document.getElementById('task-status-select').value = task.status || 'pendiente';
+      document.getElementById('task-start-date').value = task.startDate || '';
       document.getElementById('task-due-date').value = task.dueDate || '';
 
       populateTaskFormSelectors(task.id);
@@ -7768,6 +8117,7 @@
     window.clearAllData = clearAllData;
     window.restoreDemoData = restoreDemoData;
     window.handleImportTemplateJSON = handleImportTemplateJSON;
+    window.scrollToGanttToday = scrollToGanttToday;
     window.clearAllFilters = clearAllFilters;
     window.setDependenciesViewMode = setDependenciesViewMode;
     window.adjustGitGraphZoom = adjustGitGraphZoom;
