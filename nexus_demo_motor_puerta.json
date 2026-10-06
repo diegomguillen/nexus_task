@@ -1,0 +1,440 @@
+{
+  "projects": [
+    {
+      "id": "prj-mot-01",
+      "code": "PRJ-MOT",
+      "name": "Nuevo Motor de Puerta Corredera Industrial (Titan-800)",
+      "description": "Desarrollo integral del automatismo de alta velocidad con certificación EN 12453, motorización brushless y conectividad IoT.",
+      "color": "#6366f1",
+      "status": "en_curso",
+      "parentId": null,
+      "createdAt": "2026-09-01"
+    },
+    {
+      "id": "prj-mec-01",
+      "code": "PRJ-MEC",
+      "name": "Subsistema Mecánico y Reductora",
+      "description": "Chasis inyectado en aluminio, reductora helicoidal en baño de aceite y sistema de embrague de seguridad anti-atrapamiento.",
+      "color": "#3b82f6",
+      "status": "en_curso",
+      "parentId": "prj-mot-01",
+      "createdAt": "2026-09-05"
+    },
+    {
+      "id": "prj-ele-01",
+      "code": "PRJ-ELE",
+      "name": "Subsistema Electrónico y Control de Potencia",
+      "description": "Etapa de potencia inversora trifásica, encoder óptico de alta precisión y filtro EMC para normativa industrial.",
+      "color": "#06b6d4",
+      "status": "en_curso",
+      "parentId": "prj-mot-01",
+      "createdAt": "2026-09-05"
+    },
+    {
+      "id": "prj-fir-01",
+      "code": "PRJ-FIR",
+      "name": "Firmware y Conectividad IoT",
+      "description": "Algoritmo FOC de par motor, detección de obstáculos en 150ms, interfaz Bluetooth BLE para instaladores y telemetría MQTT.",
+      "color": "#8b5cf6",
+      "status": "en_curso",
+      "parentId": "prj-mot-01",
+      "createdAt": "2026-09-08"
+    },
+    {
+      "id": "prj-eco-02",
+      "code": "PRJ-ECO",
+      "name": "Línea Residencial Eco-Slide",
+      "description": "Automatismo compacto para puertas de cancela residencial unifamiliar con piñón silencioso.",
+      "color": "#10b981",
+      "status": "en_curso",
+      "parentId": null,
+      "createdAt": "2026-09-12"
+    }
+  ],
+  "members": [
+    "Diego Martínez",
+    "Carlos Iriarte",
+    "Elena Aguirre",
+    "Laura Zabaleta",
+    "Mikel Ormaetxea",
+    "Ainara Goikoetxea"
+  ],
+  "meetings": [
+    {
+      "id": "meet-101",
+      "title": "Kickoff Técnico: Arquitectura General Titan-800",
+      "date": "2026-09-15T09:30",
+      "location": "Sala I+D - Planta 2 / Teams",
+      "projectIds": [
+        "prj-mot-01",
+        "prj-mec-01",
+        "prj-ele-01",
+        "prj-fir-01"
+      ],
+      "attendees": [
+        "@Diego Martínez",
+        "@Carlos Iriarte",
+        "@Elena Aguirre",
+        "@Mikel Ormaetxea"
+      ],
+      "notes": "Definición de requerimientos: par máximo 120Nm, ciclo de trabajo continuo 100%, cumplimiento EN 12453.\n- Mecánica debe fijar la envolvente térmica antes de cerrar el diseño de la PCB.\n- Firmware y electrónica coordinarán las rampas de parada suave.",
+      "actionItemIds": [
+        "tsk-201",
+        "tsk-204"
+      ]
+    },
+    {
+      "id": "meet-102",
+      "title": "Revisión Integración Mecánica-Electrónica (PCB en Chasis)",
+      "date": "2026-09-28T11:00",
+      "location": "Laboratorio de Prototipos",
+      "projectIds": [
+        "prj-mec-01",
+        "prj-ele-01"
+      ],
+      "attendees": [
+        "@Carlos Iriarte",
+        "@Elena Aguirre",
+        "@Laura Zabaleta"
+      ],
+      "notes": "Análisis de disipación térmica entre los MOSFETs del inversor y el alojamiento de aluminio.\n- Se amplían 3mm las aletas del chasis.\n- Se valida la ubicación del prensaestopas para grado de protección IP54.",
+      "actionItemIds": [
+        "tsk-202",
+        "tsk-205"
+      ]
+    },
+    {
+      "id": "meet-103",
+      "title": "Sincronización Firmware & Algoritmo Anti-Aplastamiento",
+      "date": "2026-10-04T15:00",
+      "location": "Banco de Ensayos Dinámicos",
+      "projectIds": [
+        "prj-ele-01",
+        "prj-fir-01"
+      ],
+      "attendees": [
+        "@Elena Aguirre",
+        "@Mikel Ormaetxea",
+        "@Ainara Goikoetxea"
+      ],
+      "notes": "Pruebas de la lectura analógica del shunt.\n- El firmware detecta el pico de consumo en menos de 100ms.\n- Pendiente añadir filtro pasa-bajos para evitar falsos positivos en arranques con viento fuerte.",
+      "actionItemIds": [
+        "tsk-206",
+        "tsk-208"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "tsk-200",
+      "code": "TSK-200",
+      "title": "Dossier de Homologación y Marcado CE (Norma EN 12453)",
+      "description": "Consolidación de informes de ensayos de todos los subsistemas (mecánico, electrónico y firmware) para el organismo certificador.",
+      "projectId": "prj-mot-01",
+      "meetingId": "meet-101",
+      "assignedTo": "Diego Martínez",
+      "priority": "urgente",
+      "status": "en_progreso",
+      "startDate": "2026-10-01",
+      "dueDate": "2026-10-25",
+      "blockedBy": [
+        "tsk-203",
+        "tsk-207"
+      ],
+      "subtasks": [
+        {
+          "id": "sub-101",
+          "title": "Recopilar ensayos de compatibilidad electromagnética (EMC)",
+          "completed": false
+        },
+        {
+          "id": "sub-102",
+          "title": "Redactar manual de instalación, seguridad y puesta en marcha",
+          "completed": true
+        }
+      ]
+    },
+    {
+      "id": "tsk-201",
+      "code": "TSK-201",
+      "title": "Cálculo por elementos finitos (FEA) de la reductora de bronce",
+      "description": "Simulación estática y a fatiga bajo par nominal de 120Nm y sobrecargas de inercia.",
+      "projectId": "prj-mec-01",
+      "meetingId": "meet-101",
+      "assignedTo": "Carlos Iriarte",
+      "priority": "alta",
+      "status": "completada",
+      "startDate": "2026-09-16",
+      "dueDate": "2026-09-24",
+      "blockedBy": [],
+      "subtasks": [
+        {
+          "id": "sub-201",
+          "title": "Selección de aleación CuSn12 para la corona helicoidal",
+          "completed": true
+        },
+        {
+          "id": "sub-202",
+          "title": "Generación de informe de tensiones admisibles de Von Mises",
+          "completed": true
+        }
+      ]
+    },
+    {
+      "id": "tsk-202",
+      "code": "TSK-202",
+      "title": "Mecanizado CNC y ajuste del primer chasis prototipo",
+      "description": "Alojamiento de rodamientos de precisión, retenes de estanqueidad y cierre estanco.",
+      "projectId": "prj-mec-01",
+      "meetingId": "meet-102",
+      "assignedTo": "Carlos Iriarte",
+      "priority": "alta",
+      "status": "completada",
+      "startDate": "2026-09-25",
+      "dueDate": "2026-10-02",
+      "blockedBy": [
+        "tsk-201"
+      ],
+      "subtasks": [
+        {
+          "id": "sub-203",
+          "title": "Rectificado y cementado del eje sinfín",
+          "completed": true
+        },
+        {
+          "id": "sub-204",
+          "title": "Montaje de rodamientos 6204-2RS y prueba de juego axial",
+          "completed": true
+        }
+      ]
+    },
+    {
+      "id": "tsk-203",
+      "code": "TSK-203",
+      "title": "Ensayo de fatiga acelerada (100.000 maniobras continuas)",
+      "description": "Test de durabilidad en banco automatizado con carga inercial de 800 kg simulando cancela pesada.",
+      "projectId": "prj-mec-01",
+      "meetingId": null,
+      "assignedTo": "Laura Zabaleta",
+      "priority": "urgente",
+      "status": "en_progreso",
+      "startDate": "2026-10-03",
+      "dueDate": "2026-10-18",
+      "blockedBy": [
+        "tsk-202"
+      ],
+      "subtasks": [
+        {
+          "id": "sub-205",
+          "title": "Superadas 30.000 maniobras sin sobrecalentamiento",
+          "completed": true
+        },
+        {
+          "id": "sub-206",
+          "title": "Inspección de degradación del aceite sintético a 60.000 ciclos",
+          "completed": false
+        },
+        {
+          "id": "sub-207",
+          "title": "Medición micrométrica del flanco de dientes al finalizar test",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "tsk-204",
+      "code": "TSK-204",
+      "title": "Diseño esquemático y ruteado PCB inversor trifásico",
+      "description": "Etapa de conmutación MOSFET con optoacopladores rápidos y protección contra cortocircuito.",
+      "projectId": "prj-ele-01",
+      "meetingId": "meet-101",
+      "assignedTo": "Elena Aguirre",
+      "priority": "alta",
+      "status": "completada",
+      "startDate": "2026-09-17",
+      "dueDate": "2026-09-27",
+      "blockedBy": [],
+      "subtasks": [
+        {
+          "id": "sub-301",
+          "title": "Trazado de pistas de potencia con capa de cobre de 70um",
+          "completed": true
+        },
+        {
+          "id": "sub-302",
+          "title": "Generación y verificación de archivos Gerber para fabricación",
+          "completed": true
+        }
+      ]
+    },
+    {
+      "id": "tsk-205",
+      "code": "TSK-205",
+      "title": "Montaje SMD y validación eléctrica de 5 placas piloto",
+      "description": "Soldadura en horno de reflow y testeo de fuentes 24V y 3.3V. Cerrada con advertencias por sustitución de componente.",
+      "projectId": "prj-ele-01",
+      "meetingId": "meet-102",
+      "assignedTo": "Elena Aguirre",
+      "priority": "alta",
+      "status": "completada_avisos",
+      "startDate": "2026-09-28",
+      "dueDate": "2026-10-04",
+      "blockedBy": [
+        "tsk-204"
+      ],
+      "subtasks": [
+        {
+          "id": "sub-303",
+          "title": "Test de consumo en modo reposo eco (< 0.5W)",
+          "completed": true
+        },
+        {
+          "id": "sub-304",
+          "title": "Reemplazo de condensador de filtrado por modelo de 105°C",
+          "completed": true
+        }
+      ]
+    },
+    {
+      "id": "tsk-206",
+      "code": "TSK-206",
+      "title": "Calibración del circuito de detección de corriente por shunt",
+      "description": "Ajuste del amplificador de instrumentación para lectura precisa de corriente del motor.",
+      "projectId": "prj-ele-01",
+      "meetingId": "meet-103",
+      "assignedTo": "Ainara Goikoetxea",
+      "priority": "media",
+      "status": "en_progreso",
+      "startDate": "2026-10-04",
+      "dueDate": "2026-10-12",
+      "blockedBy": [
+        "tsk-205"
+      ],
+      "subtasks": [
+        {
+          "id": "sub-305",
+          "title": "Comprobación de linealidad frente a osciloscopio digital",
+          "completed": true
+        },
+        {
+          "id": "sub-306",
+          "title": "Filtrado activo de picos transitorios de conmutación",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "tsk-207",
+      "code": "TSK-207",
+      "title": "Implementación del algoritmo de control vectorial FOC",
+      "description": "Control de par sin sensores a bajas revoluciones y gestión de rampas en S suaves.",
+      "projectId": "prj-fir-01",
+      "meetingId": null,
+      "assignedTo": "Mikel Ormaetxea",
+      "priority": "urgente",
+      "status": "en_progreso",
+      "startDate": "2026-09-29",
+      "dueDate": "2026-10-14",
+      "blockedBy": [
+        "tsk-205"
+      ],
+      "subtasks": [
+        {
+          "id": "sub-401",
+          "title": "Lectura de interrupciones del encoder en tiempo real",
+          "completed": true
+        },
+        {
+          "id": "sub-402",
+          "title": "Sintonización de lazos PI de corriente y velocidad",
+          "completed": false
+        },
+        {
+          "id": "sub-403",
+          "title": "Protección por sobretemperatura calculada por software",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "tsk-208",
+      "code": "TSK-208",
+      "title": "Pila Bluetooth BLE y app de configuración técnica",
+      "description": "Servicios GATT seguros para configuración inalámbrica de parámetros desde smartphone del instalador.",
+      "projectId": "prj-fir-01",
+      "meetingId": "meet-103",
+      "assignedTo": "Mikel Ormaetxea",
+      "priority": "alta",
+      "status": "bloqueada",
+      "startDate": "2026-10-06",
+      "dueDate": "2026-10-16",
+      "blockedBy": [
+        "tsk-207"
+      ],
+      "subtasks": [
+        {
+          "id": "sub-404",
+          "title": "Definición del mapa de registros y contraseñas de servicio",
+          "completed": true
+        },
+        {
+          "id": "sub-405",
+          "title": "Protocolo de emparejamiento BLE 5.0 con cifrado AES",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "tsk-209",
+      "code": "TSK-209",
+      "title": "Cliente MQTT para telemetría en la nube y mantenimiento preventivo",
+      "description": "Envío periódico de horas acumuladas de motor, ciclos de maniobra y advertencias de servicio.",
+      "projectId": "prj-fir-01",
+      "meetingId": null,
+      "assignedTo": "Ainara Goikoetxea",
+      "priority": "media",
+      "status": "pendiente",
+      "startDate": "2026-10-14",
+      "dueDate": "2026-10-24",
+      "blockedBy": [
+        "tsk-208"
+      ],
+      "subtasks": [
+        {
+          "id": "sub-406",
+          "title": "Estructura de mensajes JSON y compresión",
+          "completed": false
+        },
+        {
+          "id": "sub-407",
+          "title": "Almacenamiento de eventos offline en memoria Flash SPI",
+          "completed": false
+        }
+      ]
+    },
+    {
+      "id": "tsk-210",
+      "code": "TSK-210",
+      "title": "Mecanizado de piñón silencioso Z16 para cremallera de nylon",
+      "description": "Adaptación acústica para cancelas residenciales ligeras del proyecto paralelo.",
+      "projectId": "prj-eco-02",
+      "meetingId": null,
+      "assignedTo": "Carlos Iriarte",
+      "priority": "baja",
+      "status": "en_progreso",
+      "startDate": "2026-10-02",
+      "dueDate": "2026-10-10",
+      "blockedBy": [],
+      "subtasks": [
+        {
+          "id": "sub-501",
+          "title": "Medición de nivel sonoro en cámara semianecoica (< 48 dBA)",
+          "completed": true
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "theme": "dark"
+  }
+}

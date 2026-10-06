@@ -851,6 +851,43 @@
       gap: 20px;
     }
 
+    .parent-project-card {
+      grid-column: span 1;
+    }
+    @media (min-width: 1100px) {
+      .parent-project-card {
+        grid-column: span 2;
+      }
+    }
+
+    .subprojects-container {
+      margin-top: 14px;
+      background: var(--bg-hover, rgba(255, 255, 255, 0.03));
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .subproject-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      transition: all 0.2s ease;
+      flex-wrap: wrap;
+    }
+
+    .subproject-item:hover {
+      border-color: var(--border-highlight);
+    }
+
     .meeting-card {
       background: var(--bg-surface);
       border: 1px solid var(--border-subtle);
@@ -1299,6 +1336,12 @@
       opacity: 0.85;
     }
 
+    .git-edge.edge-completed-warning {
+      stroke: #f59e0b;
+      stroke-width: 2.2;
+      opacity: 0.95;
+    }
+
     .git-edge.edge-blocked {
       stroke: #ec4899;
       stroke-width: 2.5;
@@ -1675,13 +1718,18 @@
       height: 94px;
     }
 
+    .lineage-card-subproject {
+      width: 270px;
+      height: 94px;
+    }
+
     .lineage-card-meeting {
-      width: 320px;
+      width: 310px;
       height: 108px;
     }
 
     .lineage-card-task {
-      width: 320px;
+      width: 310px;
       height: 88px;
     }
 
@@ -2603,6 +2651,10 @@
               <span>Completada</span>
             </div>
             <div class="graph-legend-item">
+              <span class="legend-color" style="background:#f59e0b;"></span>
+              <span>Completada c/ Avisos</span>
+            </div>
+            <div class="graph-legend-item">
               <span class="legend-color" style="background:var(--primary);"></span>
               <span>En Progreso (Activa)</span>
             </div>
@@ -3153,6 +3205,16 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label" for="project-parent-select">Proyecto Padre / Superior (Opcional)</label>
+            <select class="form-control" id="project-parent-select">
+              <option value="">-- Ninguno (Proyecto Principal / Raíz) --</option>
+            </select>
+            <small style="color:var(--text-dim); font-size:0.75rem; margin-top:4px; display:block;">
+              Si este proyecto es una parte o subsistema de otro (ej: Mecánica, Electrónica), selecciona aquí el proyecto padre.
+            </small>
+          </div>
+
+          <div class="form-group">
             <label class="form-label" for="project-desc-input">Descripción y Objetivos</label>
             <textarea class="form-control" id="project-desc-input" placeholder="Alcance general del proyecto..."></textarea>
           </div>
@@ -3508,14 +3570,42 @@
       showToast('Datos de demostración restaurados correctamente.', 'success');
     }
 
-    /* CONTROL DE ESTADO DE PROYECTOS (EN CURSO vs CERRADOS) */
+    /* CONTROL DE ESTADO Y JERARQUÍA DE PROYECTOS (EN CURSO vs CERRADOS) */
     let currentProjectSubTab = 'en_curso';
+
+    /**
+     * Devuelve el ID del proyecto y los IDs de todos sus subproyectos descendientes.
+     */
+    function getProjectFamilyIds(projectId) {
+      if (!projectId || projectId === 'all' || projectId === 'none') return [projectId];
+      const family = [projectId];
+      const queue = [projectId];
+      const allProjects = appData.projects || [];
+
+      while (queue.length > 0) {
+        const curId = queue.shift();
+        const children = allProjects.filter(p => p.parentId === curId);
+        children.forEach(child => {
+          if (!family.includes(child.id)) {
+            family.push(child.id);
+            queue.push(child.id);
+          }
+        });
+      }
+      return family;
+    }
 
     function isProjectActive(projectId) {
       if (!projectId) return true; // Tareas/reuniones transversales (sin proyecto) siempre visibles
       const prj = (appData.projects || []).find(p => p.id === projectId);
       if (!prj) return true;
-      return prj.status !== 'cerrado';
+      if (prj.status === 'cerrado') return false;
+      // Si su proyecto padre está cerrado, el subproyecto también se considera cerrado
+      if (prj.parentId) {
+        const parent = (appData.projects || []).find(p => p.id === prj.parentId);
+        if (parent && parent.status === 'cerrado') return false;
+      }
+      return true;
     }
 
     function isMeetingActive(meeting) {
@@ -3552,6 +3642,27 @@
       if (!prj) return;
       const isReopening = prj.status === 'cerrado';
       prj.status = isReopening ? 'en_curso' : 'cerrado';
+
+      const subprojects = (appData.projects || []).filter(p => p.parentId === projectId);
+      if (subprojects.length > 0) {
+        if (!isReopening) {
+          if (confirm(`El proyecto "${prj.name}" tiene ${subprojects.length} parte(s) vinculada(s).\n\n¿Deseas cerrar también todos sus subproyectos?`)) {
+            subprojects.forEach(s => s.status = 'cerrado');
+          }
+        } else {
+          if (confirm(`¿Deseas reactivar también los ${subprojects.length} subproyecto(s) de "${prj.name}"?`)) {
+            subprojects.forEach(s => s.status = 'en_curso');
+          }
+        }
+      } else if (isReopening && prj.parentId) {
+        const parentPrj = (appData.projects || []).find(p => p.id === prj.parentId);
+        if (parentPrj && parentPrj.status === 'cerrado') {
+          if (confirm(`El proyecto principal "${parentPrj.name}" está cerrado.\n\n¿Deseas reactivar también el proyecto principal?`)) {
+            parentPrj.status = 'en_curso';
+          }
+        }
+      }
+
       saveData();
       populateFilterSelectors();
       updateAllViewCounts();
@@ -3878,6 +3989,7 @@
       const memberFilter = document.getElementById('filter-member').value;
       const priorityFilter = document.getElementById('filter-priority').value;
       const blockFilter = document.getElementById('filter-block-status').value;
+      const familyIds = (prjFilter !== 'all' && prjFilter !== 'none') ? getProjectFamilyIds(prjFilter) : null;
 
       filteredTasksCache = appData.tasks.filter(t => {
         // REGLA FUNDAMENTAL: Solo mostrar tareas pertenecientes a proyectos en curso (o transversales/sin proyecto)
@@ -3888,11 +4000,11 @@
           if (!doesTaskMatchSearch(t, queryTokens)) return false;
         }
 
-        // Filtro por proyecto
+        // Filtro por proyecto (soporta proyectos padre e incluye sus subproyectos)
         if (prjFilter !== 'all') {
           if (prjFilter === 'none') {
             if (t.projectId) return false;
-          } else if (t.projectId !== prjFilter) {
+          } else if (!familyIds || !familyIds.includes(t.projectId)) {
             return false;
           }
         }
@@ -4572,7 +4684,7 @@
       const blockers = getBlockersInfo(task);
       const blockedByThis = getTasksBlockedBy(task.id);
       const project = appData.projects.find(p => p.id === task.projectId);
-      const isCritical = blockedByThis.length >= 2 && task.status !== 'completada';
+      const isCritical = blockedByThis.length >= 2 && task.status !== 'completada' && task.status !== 'completada_avisos';
 
       panel.innerHTML = `
         <div class="git-quick-header">
@@ -4590,7 +4702,7 @@
         <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-top:2px;">${escapeHTML(task.title)}</div>
         <div style="font-size:0.78rem; color:var(--text-muted); display:flex; gap:12px;">
           <span>Asignado: <strong>@${escapeHTML(task.assignedTo || 'Sin asignar')}</strong></span>
-          <span>Estado: <strong style="color:${task.status === 'completada' ? 'var(--success)' : (task.status === 'bloqueada' ? 'var(--blocked)' : 'var(--primary)')};">${task.status.replace('_', ' ').toUpperCase()}</strong></span>
+          <span>Estado: <strong style="color:${task.status === 'completada' ? 'var(--success)' : (task.status === 'completada_avisos' ? 'var(--warning)' : (task.status === 'bloqueada' ? 'var(--blocked)' : 'var(--primary)'))};">${task.status.replace('_', ' ').toUpperCase()}</strong></span>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px;">
@@ -4599,8 +4711,8 @@
             <div style="color:var(--text-dim); font-weight:600; margin-bottom:4px;">🔒 Bloqueada por (${blockers.length}):</div>
             ${blockers.length === 0 ? '<span style="color:var(--text-muted);">Sin dependencias previas</span>' : blockers.map(b => `
               <div style="margin-top:3px; display:flex; align-items:center; gap:4px;">
-                <span>${b.status === 'completada' ? '✅' : '🛑'}</span>
-                <a href="#" onclick="selectGitNode('${b.id}'); return false;" style="color:${b.status === 'completada' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
+                <span>${b.status === 'completada' ? '✅' : (b.status === 'completada_avisos' ? '⚠️' : '🛑')}</span>
+                <a href="#" onclick="selectGitNode('${b.id}'); return false;" style="color:${b.status === 'completada' ? 'var(--success)' : (b.status === 'completada_avisos' ? 'var(--warning)' : 'var(--danger)')}; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
               </div>
             `).join('')}
           </div>
@@ -4710,11 +4822,12 @@
       const projectFilterEl = document.getElementById('git-graph-project-filter');
       const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
       if (projectFilterEl) {
+        const hierarchical = getHierarchicalProjectsList(true);
         projectFilterEl.innerHTML = `
           <option value="all" ${curVal === 'all' ? 'selected' : ''}>Todas las ramas (Proyectos)</option>
           <option value="none" ${curVal === 'none' ? 'selected' : ''}>Sin Proyecto (Transversales)</option>
-          ${activeProjects.map(p => `
-            <option value="${p.id}" ${curVal === p.id ? 'selected' : ''}>${escapeHTML(p.name)} (${p.code})</option>
+          ${hierarchical.map(item => `
+            <option value="${item.project.id}" ${curVal === item.project.id ? 'selected' : ''}>${renderProjectOptionHTML(item)}</option>
           `).join('')}
         `;
         projectFilterEl.value = (curVal && curVal !== 'all' && curVal !== 'none' && !activeProjects.some(p => p.id === curVal)) ? 'all' : curVal;
@@ -4726,7 +4839,8 @@
         if (selectedProjectInGraph === 'none') {
           activeTasks = activeTasks.filter(t => !t.projectId);
         } else {
-          activeTasks = activeTasks.filter(t => t.projectId === selectedProjectInGraph);
+          const graphFamilyIds = getProjectFamilyIds(selectedProjectInGraph);
+          activeTasks = activeTasks.filter(t => graphFamilyIds.includes(t.projectId));
         }
       }
 
@@ -4754,7 +4868,7 @@
         cardsContainer.innerHTML = activeTasks.map(task => {
           const blockers = getBlockersInfo(task);
           const blockedByThis = getTasksBlockedBy(task.id);
-          const isCriticalBottleneck = blockedByThis.length >= 2 && task.status !== 'completada';
+          const isCriticalBottleneck = blockedByThis.length >= 2 && task.status !== 'completada' && task.status !== 'completada_avisos';
           const progress = getTaskProgress(task);
 
           return `
@@ -4772,8 +4886,8 @@
                 <div style="color:var(--text-dim); margin-bottom:4px; font-weight:600;">🔒 Depende de (Bloqueada por):</div>
                 ${blockers.length === 0 ? '<span style="color:var(--text-muted);">Sin dependencias directas</span>' : blockers.map(b => `
                   <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
-                    <span>${b.status === 'completada' ? '✅' : '🛑'}</span>
-                    <a href="#" onclick="openEditTaskModal('${b.id}'); return false;" style="color:${b.status === 'completada' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
+                    <span>${b.status === 'completada' ? '✅' : (b.status === 'completada_avisos' ? '⚠️' : '🛑')}</span>
+                    <a href="#" onclick="openEditTaskModal('${b.id}'); return false;" style="color:${b.status === 'completada' ? 'var(--success)' : (b.status === 'completada_avisos' ? 'var(--warning)' : 'var(--danger)')}; font-weight:600;">[${b.code}] ${escapeHTML(b.title)}</a>
                   </div>
                 `).join('')}
               </div>
@@ -4961,7 +5075,9 @@
           totalEdges++;
           const sourceTask = sourceNode.task;
           const isCompleted = sourceTask.status === 'completada';
-          if (!isCompleted) activeBlockedEdges++;
+          const isWarningCompleted = sourceTask.status === 'completada_avisos';
+          const isSatisfied = isCompleted || isWarningCompleted;
+          if (!isSatisfied) activeBlockedEdges++;
 
           const x1 = sourceNode.x + sourceNode.width;
           const y1 = sourceNode.y + sourceNode.height / 2;
@@ -4976,8 +5092,15 @@
             pathD = `M ${x1} ${y1} C ${x1 + 60} ${y1 - 50}, ${x2 - 60} ${y2 - 50}, ${x2} ${y2}`;
           }
 
-          const edgeClass = isCompleted ? 'edge-completed' : 'edge-blocked';
-          const markerId = isCompleted ? 'git-arrow-completed' : 'git-arrow-blocked';
+          let edgeClass = 'edge-blocked';
+          let markerId = 'git-arrow-blocked';
+          if (isCompleted) {
+            edgeClass = 'edge-completed';
+            markerId = 'git-arrow-completed';
+          } else if (isWarningCompleted) {
+            edgeClass = 'edge-completed-warning';
+            markerId = 'git-arrow-amber';
+          }
 
           svgContent += `
             <path class="git-edge ${edgeClass}"
@@ -5003,12 +5126,14 @@
 
         const blockers = (task.blockedBy || []).filter(id => taskMap.has(id));
         const blockedByThis = getTasksBlockedBy(task.id);
-        const isCritical = blockedByThis.length >= 2 && task.status !== 'completada';
+        const isCritical = blockedByThis.length >= 2 && task.status !== 'completada' && task.status !== 'completada_avisos';
         const progress = getTaskProgress(task);
 
         let statusDotHTML = '';
         if (task.status === 'completada') {
           statusDotHTML = `<span class="git-commit-dot" style="background:var(--success); color:#fff;">✓</span>`;
+        } else if (task.status === 'completada_avisos') {
+          statusDotHTML = `<span class="git-commit-dot" style="background:var(--warning); color:#fff;" title="Completada con avisos">⚠️</span>`;
         } else if (task.status === 'en_progreso') {
           statusDotHTML = `<span class="git-commit-dot" style="background:var(--primary); color:#fff; box-shadow:0 0 8px var(--primary);">●</span>`;
         } else if (task.status === 'bloqueada') {
@@ -5202,13 +5327,14 @@
 
       let activeMeetings = appData.meetings.filter(m => isMeetingActive(m));
 
-      // Filtro por proyecto desde la barra superior
+      // Filtro por proyecto desde la barra superior (soporta proyecto padre + subproyectos)
       const prjFilter = document.getElementById('filter-project') ? document.getElementById('filter-project').value : 'all';
       if (prjFilter !== 'all') {
         if (prjFilter === 'none') {
           activeMeetings = activeMeetings.filter(m => !m.projectIds || m.projectIds.length === 0);
         } else {
-          activeMeetings = activeMeetings.filter(m => Array.isArray(m.projectIds) && m.projectIds.includes(prjFilter));
+          const familyIds = getProjectFamilyIds(prjFilter);
+          activeMeetings = activeMeetings.filter(m => Array.isArray(m.projectIds) && m.projectIds.some(pid => familyIds.includes(pid)));
         }
       }
 
@@ -5294,6 +5420,41 @@
     /* ==========================================================================
        RENDERIZADO: 7. VISTA PROYECTOS (EN CURSO vs APARTADO ESPECIAL CERRADOS)
        ========================================================================== */
+    function filterAndGoToKanban(projectId) {
+      const prjFilter = document.getElementById('filter-project');
+      if (prjFilter) {
+        prjFilter.value = projectId;
+        const gPrj = document.getElementById('git-graph-project-filter');
+        if (gPrj) gPrj.value = projectId;
+        const lPrj = document.getElementById('lineage-project-filter');
+        if (lPrj) lPrj.value = projectId;
+        const oSel = document.getElementById('lineage-origin-filter');
+        if (oSel && oSel.value === 'transversal' && projectId !== 'none') {
+          oSel.value = 'all';
+        }
+      }
+      switchView('kanban');
+      renderActiveView();
+    }
+
+    function openNewSubprojectModal(parentId) {
+      openNewProjectModal();
+      if (parentId) {
+        const parentPrj = (appData.projects || []).find(p => p.id === parentId);
+        if (parentPrj) {
+          document.getElementById('modal-project-title').textContent = `Nueva Parte / Subproyecto de: ${parentPrj.name}`;
+          const parentSelect = document.getElementById('project-parent-select');
+          if (parentSelect) parentSelect.value = parentId;
+          const colorInput = document.getElementById('project-color-input');
+          if (colorInput && parentPrj.color) colorInput.value = parentPrj.color;
+          const codeInput = document.getElementById('project-code-input');
+          if (codeInput && parentPrj.code) {
+            codeInput.value = `${parentPrj.code}-`;
+          }
+        }
+      }
+    }
+
     function renderProjectsView() {
       const container = document.getElementById('projects-grid-container');
       if (!container) return;
@@ -5310,17 +5471,25 @@
       const normQ = normalizeSearchText(rawQ);
       const tokens = normQ ? normQ.split(/\s+/).map(t => t.replace(/^@/, '')).filter(Boolean) : [];
 
-      let projectsToShow = currentProjectSubTab === 'en_curso' ? activeProjects : closedProjects;
+      const currentPool = currentProjectSubTab === 'en_curso' ? activeProjects : closedProjects;
 
-      if (tokens.length > 0) {
-        projectsToShow = projectsToShow.filter(prj => {
-          const fullPrjText = normalizeSearchText(`${prj.name || ''} ${prj.code || ''} ${prj.description || ''}`);
-          return tokens.every(token => fullPrjText.includes(token));
-        });
-      }
+      const matchesSearch = (prj) => {
+        if (tokens.length === 0) return true;
+        const fullPrjText = normalizeSearchText(`${prj.name || ''} ${prj.code || ''} ${prj.description || ''}`);
+        return tokens.every(token => fullPrjText.includes(token));
+      };
 
-      if (projectsToShow.length === 0) {
-        const msg = (currentProjectSubTab === 'en_curso' ? activeProjects.length : closedProjects.length) === 0
+      // Identificar proyectos raíz del conjunto actual (sin parentId o cuyo parent no está en el conjunto actual)
+      const roots = currentPool.filter(p => !p.parentId || !currentPool.some(pr => pr.id === p.parentId));
+
+      // Filtrar raíces según búsqueda (o si alguno de sus subproyectos coincide con la búsqueda)
+      const visibleRoots = roots.filter(root => {
+        const subprojects = currentPool.filter(p => p.parentId === root.id);
+        return matchesSearch(root) || subprojects.some(s => matchesSearch(s));
+      });
+
+      if (visibleRoots.length === 0) {
+        const msg = currentPool.length === 0
           ? (currentProjectSubTab === 'en_curso' 
               ? '📂 No hay proyectos activos en curso. Puedes crear uno nuevo o reactivar uno del apartado de cerrados.' 
               : '📁 No hay proyectos en el apartado de cerrados.')
@@ -5334,31 +5503,52 @@
         return;
       }
 
-      container.innerHTML = projectsToShow.map(prj => {
+      container.innerHTML = visibleRoots.map(prj => {
         const isClosed = prj.status === 'cerrado';
-        const prjTasks = appData.tasks.filter(t => t.projectId === prj.id);
-        const completed = prjTasks.filter(t => t.status === 'completada' || t.status === 'completada_avisos').length;
-        const total = prjTasks.length;
-        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-        const meetingsCount = appData.meetings.filter(m => (m.projectIds || []).includes(prj.id)).length;
+        const subprojects = currentPool.filter(p => p.parentId === prj.id);
+        const hasSubprojects = subprojects.length > 0;
+
+        // Cálculo de rollup (familia completa)
+        const familyIds = getProjectFamilyIds(prj.id);
+        const familyTasks = appData.tasks.filter(t => familyIds.includes(t.projectId));
+        const familyCompleted = familyTasks.filter(t => t.status === 'completada' || t.status === 'completada_avisos').length;
+        const familyTotal = familyTasks.length;
+        const familyPct = familyTotal > 0 ? Math.round((familyCompleted / familyTotal) * 100) : 0;
+        const familyMeetings = appData.meetings.filter(m => (m.projectIds || []).some(pid => familyIds.includes(pid))).length;
+
+        const directTasks = appData.tasks.filter(t => t.projectId === prj.id);
+        const parentPrj = prj.parentId ? (appData.projects || []).find(p => p.id === prj.parentId) : null;
 
         return `
-          <div class="meeting-card" style="border-top:4px solid ${isClosed ? 'var(--text-dim)' : prj.color}; opacity:${isClosed ? '0.88' : '1'};">
+          <div class="meeting-card ${hasSubprojects ? 'parent-project-card' : ''}" style="border-top:4px solid ${isClosed ? 'var(--text-dim)' : prj.color}; opacity:${isClosed ? '0.88' : '1'};">
             <div class="meeting-card-header">
-              <div>
-                <div style="display:flex; align-items:center; gap:8px;">
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span class="card-code">${prj.code}</span>
                   ${isClosed 
                     ? `<span class="badge" style="background:var(--danger-light); color:var(--danger); border:1px solid var(--danger);">🔒 CERRADO</span>` 
                     : `<span class="badge" style="background:var(--success-light); color:var(--success); border:1px solid var(--success-border);">🟢 EN CURSO</span>`}
+                  ${hasSubprojects ? `<span class="badge" style="background:rgba(99,102,241,0.15); color:var(--primary); border:1px solid rgba(99,102,241,0.3); font-weight:600;">📁 Proyecto Padre (${subprojects.length} partes)</span>` : ''}
+                  ${parentPrj ? `<span class="badge" style="background:rgba(234,179,8,0.15); color:var(--warning); border:1px solid rgba(234,179,8,0.3);">↳ Subproyecto de: ${escapeHTML(parentPrj.name)}</span>` : ''}
                 </div>
                 <div class="meeting-title" style="margin-top:4px;">${escapeHTML(prj.name)}</div>
               </div>
-              <div style="display:flex; gap:6px;">
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px; display:inline-flex; align-items:center; gap:4px;" onclick="filterAndGoToKanban('${prj.id}')" title="Ir al Tablero Kanban filtrando por este proyecto">
+                  <span>📊 Kanban</span>
+                </button>
+                ${!isClosed ? `
+                  <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="openNewTaskModal('${prj.id}')" title="Crear nueva tarea en este proyecto">
+                    + Tarea
+                  </button>
+                  <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="openNewSubprojectModal('${prj.id}')" title="Añadir una nueva parte o subsistema a este proyecto">
+                    + Parte
+                  </button>
+                ` : ''}
                 <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="openEditProjectModal('${prj.id}')">Editar</button>
                 ${isClosed ? `
                   <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:4px 10px; background:var(--success); border-color:var(--success);" onclick="toggleProjectStatus('${prj.id}')" title="Reactivar y mostrar en tableros">
-                    🔄 Volver a poner en curso
+                    🔄 Reactivar
                   </button>
                 ` : `
                   <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px; color:var(--danger);" onclick="toggleProjectStatus('${prj.id}')" title="Cerrar y archivar en el apartado especial">
@@ -5370,19 +5560,87 @@
 
             <p style="font-size:0.82rem; color:var(--text-muted); line-height:1.45;">${escapeHTML(prj.description || 'Sin descripción.')}</p>
 
+            <!-- Barra de progreso (Rollup si tiene partes, o directa) -->
             <div class="subtasks-progress-box">
               <div class="subtasks-label">
-                <span>${isClosed ? 'Progreso histórico final' : 'Progreso global del proyecto'}</span>
-                <span style="font-weight:700; color:${isClosed ? 'var(--text-dim)' : prj.color};">${pct}%</span>
+                <span>${isClosed ? 'Progreso histórico final' : (hasSubprojects ? 'Progreso consolidado (Proyecto + Partes)' : 'Progreso global del proyecto')}</span>
+                <span style="font-weight:700; color:${isClosed ? 'var(--text-dim)' : prj.color};">${familyPct}%</span>
               </div>
               <div class="progress-bar-track">
-                <div class="progress-bar-fill" style="width:${pct}%; background:${isClosed ? 'var(--text-dim)' : prj.color};"></div>
+                <div class="progress-bar-fill" style="width:${familyPct}%; background:${isClosed ? 'var(--text-dim)' : prj.color};"></div>
               </div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border-subtle); padding-top:12px; font-size:0.8rem; color:var(--text-muted);">
-              <span>📌 ${total} Tareas ${isClosed ? 'archivadas' : 'vinculadas'}</span>
-              <span>🤝 ${meetingsCount} Reuniones</span>
+            ${hasSubprojects ? `
+              <!-- Lista anidada de partes / subproyectos -->
+              <div class="subprojects-container">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                  <span style="font-size:0.8rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+                    <span>⚙️ Partes y Subsistemas vinculados (${subprojects.length})</span>
+                  </span>
+                  ${!isClosed ? `
+                    <button type="button" class="btn btn-secondary" style="font-size:0.72rem; padding:3px 8px; border-style:dashed;" onclick="openNewSubprojectModal('${prj.id}')">
+                      + Añadir parte
+                    </button>
+                  ` : ''}
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  ${subprojects.map(sub => {
+                    const subTasks = appData.tasks.filter(t => t.projectId === sub.id);
+                    const subDone = subTasks.filter(t => t.status === 'completada' || t.status === 'completada_avisos').length;
+                    const subTotal = subTasks.length;
+                    const subPct = subTotal > 0 ? Math.round((subDone / subTotal) * 100) : 0;
+                    const isSubClosed = sub.status === 'cerrado';
+                    return `
+                      <div class="subproject-item" style="border-left:4px solid ${sub.color || prj.color};">
+                        <div style="display:flex; align-items:center; gap:8px; min-width:180px; flex:1;">
+                          <span class="card-code" style="font-size:0.75rem;">${escapeHTML(sub.code)}</span>
+                          <span style="font-weight:600; font-size:0.83rem; color:var(--text-main); cursor:pointer;" onclick="filterAndGoToKanban('${sub.id}')" title="Ver tareas de ${escapeHTML(sub.name)}">${escapeHTML(sub.name)}</span>
+                          ${isSubClosed ? '<span class="badge" style="font-size:0.65rem; background:var(--danger-light); color:var(--danger);">🔒 Cerrado</span>' : ''}
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; min-width:140px;">
+                          <div style="flex:1;">
+                            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-bottom:2px;">
+                              <span>${subTotal} tareas</span>
+                              <span style="font-weight:700; color:${isSubClosed ? 'var(--text-dim)' : (sub.color || prj.color)};">${subPct}%</span>
+                            </div>
+                            <div class="progress-bar-track" style="height:5px;">
+                              <div class="progress-bar-fill" style="width:${subPct}%; background:${isSubClosed ? 'var(--text-dim)' : (sub.color || prj.color)};"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                          <button type="button" class="btn btn-secondary" style="font-size:0.72rem; padding:3px 8px; display:inline-flex; align-items:center; gap:4px;" onclick="filterAndGoToKanban('${sub.id}')" title="Filtrar Kanban por esta parte">
+                            <span>📊 Kanban</span>
+                          </button>
+                          ${!isSubClosed ? `
+                            <button type="button" class="btn btn-secondary" style="font-size:0.72rem; padding:3px 8px;" onclick="openNewTaskModal('${sub.id}')" title="Crear tarea para esta parte">
+                              + Tarea
+                            </button>
+                          ` : ''}
+                          <button type="button" class="btn btn-secondary" style="font-size:0.72rem; padding:3px 6px;" onclick="openEditProjectModal('${sub.id}')" title="Editar este subproyecto">
+                            ✏️
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Resumen numérico inferior -->
+            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:12px; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap; gap:8px;">
+              <div>
+                <span>📌 ${familyTotal} Tareas ${hasSubprojects ? 'totales en el proyecto' : (isClosed ? 'archivadas' : 'vinculadas')}</span>
+                ${hasSubprojects && directTasks.length > 0 ? `<span style="font-size:0.73rem; color:var(--text-dim);"> (${directTasks.length} directas + ${familyTotal - directTasks.length} en partes)</span>` : ''}
+                <span style="margin-left:12px;">🤝 ${familyMeetings} Reuniones</span>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn btn-secondary" style="font-size:0.73rem; padding:3px 8px;" onclick="filterAndGoToKanban('${prj.id}')" title="Ver todo en Kanban">
+                  📊 Ver Todo en Kanban
+                </button>
+              </div>
             </div>
           </div>
         `;
@@ -5490,6 +5748,7 @@
 
     function applyLineageHighlight(type, id) {
       const activePrjIds = new Set();
+      const activeSubIds = new Set();
       const activeMeetIds = new Set();
       const activeTaskIds = new Set();
       const activeEdgeKeys = new Set();
@@ -5498,26 +5757,58 @@
         activeTaskIds.add(id);
         const task = appData.tasks.find(t => t.id === id);
         if (task) {
+          // Si tiene reunión
           if (task.meetingId) {
             activeMeetIds.add(task.meetingId);
             activeEdgeKeys.add(`m_${task.meetingId}->t_${task.id}`);
             const meeting = appData.meetings.find(m => m.id === task.meetingId);
             if (meeting && meeting.projectIds && meeting.projectIds.length > 0) {
               meeting.projectIds.forEach(pid => {
-                activePrjIds.add(pid);
-                activeEdgeKeys.add(`p_${pid}->m_${meeting.id}`);
+                const prj = appData.projects.find(p => p.id === pid);
+                if (prj && prj.parentId) {
+                  activeSubIds.add(prj.id);
+                  activePrjIds.add(prj.parentId);
+                  activeEdgeKeys.add(`p_${prj.parentId}->sub_${prj.id}`);
+                  activeEdgeKeys.add(`sub_${prj.id}->m_${meeting.id}`);
+                } else if (prj) {
+                  activePrjIds.add(pid);
+                  activeEdgeKeys.add(`p_${pid}->m_${meeting.id}`);
+                }
               });
             } else if (task.projectId) {
-              activePrjIds.add(task.projectId);
-              activeEdgeKeys.add(`p_${task.projectId}->m_${meeting.id}`);
+              const prj = appData.projects.find(p => p.id === task.projectId);
+              if (prj && prj.parentId) {
+                activeSubIds.add(prj.id);
+                activePrjIds.add(prj.parentId);
+                activeEdgeKeys.add(`p_${prj.parentId}->sub_${prj.id}`);
+                activeEdgeKeys.add(`sub_${prj.id}->m_${task.meetingId}`);
+              } else {
+                activePrjIds.add(task.projectId);
+                activeEdgeKeys.add(`p_${task.projectId}->m_${task.meetingId}`);
+              }
             } else {
               activePrjIds.add('prj-transversal');
-              activeEdgeKeys.add(`p_prj-transversal->m_${meeting.id}`);
+              activeEdgeKeys.add(`p_prj-transversal->m_${task.meetingId}`);
             }
-          } else if (task.projectId) {
-            activePrjIds.add(task.projectId);
-            activeEdgeKeys.add(`p_${task.projectId}->t_${task.id}`);
-          } else {
+          }
+
+          // Si tiene proyecto directamente
+          if (task.projectId) {
+            const prj = appData.projects.find(p => p.id === task.projectId);
+            if (prj && prj.parentId) {
+              activeSubIds.add(prj.id);
+              activePrjIds.add(prj.parentId);
+              activeEdgeKeys.add(`p_${prj.parentId}->sub_${prj.id}`);
+              if (!task.meetingId) {
+                activeEdgeKeys.add(`sub_${prj.id}->t_${task.id}`);
+              }
+            } else {
+              activePrjIds.add(task.projectId);
+              if (!task.meetingId) {
+                activeEdgeKeys.add(`p_${task.projectId}->t_${task.id}`);
+              }
+            }
+          } else if (!task.meetingId) {
             activePrjIds.add('prj-transversal');
             activeEdgeKeys.add(`p_prj-transversal->t_${task.id}`);
           }
@@ -5528,8 +5819,16 @@
         if (meeting) {
           if (meeting.projectIds && meeting.projectIds.length > 0) {
             meeting.projectIds.forEach(pid => {
-              activePrjIds.add(pid);
-              activeEdgeKeys.add(`p_${pid}->m_${meeting.id}`);
+              const prj = appData.projects.find(p => p.id === pid);
+              if (prj && prj.parentId) {
+                activeSubIds.add(prj.id);
+                activePrjIds.add(prj.parentId);
+                activeEdgeKeys.add(`p_${prj.parentId}->sub_${prj.id}`);
+                activeEdgeKeys.add(`sub_${prj.id}->m_${meeting.id}`);
+              } else {
+                activePrjIds.add(pid);
+                activeEdgeKeys.add(`p_${pid}->m_${meeting.id}`);
+              }
             });
           } else {
             activePrjIds.add('prj-transversal');
@@ -5544,6 +5843,35 @@
             }
           });
         }
+      } else if (type === 'subproject') {
+        activeSubIds.add(id);
+        const sub = appData.projects.find(p => p.id === id);
+        if (sub && sub.parentId) {
+          activePrjIds.add(sub.parentId);
+          activeEdgeKeys.add(`p_${sub.parentId}->sub_${sub.id}`);
+        }
+
+        // Reuniones vinculadas a este subproyecto
+        appData.meetings.forEach(m => {
+          if (m.projectIds && m.projectIds.includes(id)) {
+            activeMeetIds.add(m.id);
+            activeEdgeKeys.add(`sub_${id}->m_${m.id}`);
+          }
+        });
+
+        // Tareas vinculadas a este subproyecto
+        appData.tasks.forEach(t => {
+          if (t.projectId === id) {
+            activeTaskIds.add(t.id);
+            if (t.meetingId) {
+              activeMeetIds.add(t.meetingId);
+              activeEdgeKeys.add(`m_${t.meetingId}->t_${t.id}`);
+              activeEdgeKeys.add(`sub_${id}->m_${t.meetingId}`);
+            } else {
+              activeEdgeKeys.add(`sub_${id}->t_${t.id}`);
+            }
+          }
+        });
       } else if (type === 'project') {
         activePrjIds.add(id);
         if (id === 'prj-transversal') {
@@ -5565,12 +5893,42 @@
             }
           });
         } else {
+          // Subproyectos hijos de este proyecto principal
+          const subprojects = appData.projects.filter(p => p.parentId === id);
+          subprojects.forEach(sub => {
+            activeSubIds.add(sub.id);
+            activeEdgeKeys.add(`p_${id}->sub_${sub.id}`);
+
+            appData.meetings.forEach(m => {
+              if (m.projectIds && m.projectIds.includes(sub.id)) {
+                activeMeetIds.add(m.id);
+                activeEdgeKeys.add(`sub_${sub.id}->m_${m.id}`);
+              }
+            });
+
+            appData.tasks.forEach(t => {
+              if (t.projectId === sub.id) {
+                activeTaskIds.add(t.id);
+                if (t.meetingId) {
+                  activeMeetIds.add(t.meetingId);
+                  activeEdgeKeys.add(`m_${t.meetingId}->t_${t.id}`);
+                  activeEdgeKeys.add(`sub_${sub.id}->m_${t.meetingId}`);
+                } else {
+                  activeEdgeKeys.add(`sub_${sub.id}->t_${t.id}`);
+                }
+              }
+            });
+          });
+
+          // Reuniones directas del proyecto principal
           appData.meetings.forEach(m => {
             if (m.projectIds && m.projectIds.includes(id)) {
               activeMeetIds.add(m.id);
               activeEdgeKeys.add(`p_${id}->m_${m.id}`);
             }
           });
+
+          // Tareas directas del proyecto principal
           appData.tasks.forEach(t => {
             if (t.projectId === id) {
               activeTaskIds.add(t.id);
@@ -5592,6 +5950,7 @@
         const cId = el.dataset.nodeId;
         let isMatch = false;
         if (cType === 'project' && activePrjIds.has(cId)) isMatch = true;
+        else if (cType === 'subproject' && activeSubIds.has(cId)) isMatch = true;
         else if (cType === 'meeting' && activeMeetIds.has(cId)) isMatch = true;
         else if (cType === 'task' && activeTaskIds.has(cId)) isMatch = true;
 
@@ -5653,6 +6012,7 @@
         const task = appData.tasks.find(t => t.id === id);
         if (!task) return;
         const project = appData.projects.find(p => p.id === task.projectId);
+        const parentProject = (project && project.parentId) ? appData.projects.find(p => p.id === project.parentId) : null;
         const meeting = appData.meetings.find(m => m.id === task.meetingId);
 
         const statusLabels = {
@@ -5678,22 +6038,43 @@
 
           <!-- LINAJE EN CADENA -->
           <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
-            <div class="lineage-breadcrumb-step">
-              <span style="font-size:1rem;">🏢</span>
-              <div>
-                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">1. PROYECTO RAÍZ</div>
-                <div style="font-weight:600; color:${project ? project.color : 'var(--text-main)'};">
-                  ${project ? `[${escapeHTML(project.code)}] ${escapeHTML(project.name)}` : '🌐 Transversal (Sin proyecto específico)'}
+            ${parentProject ? `
+              <div class="lineage-breadcrumb-step">
+                <span style="font-size:1rem;">🏢</span>
+                <div>
+                  <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">1. PROYECTO MAESTRO</div>
+                  <div style="font-weight:600; color:${parentProject.color || 'var(--text-main)'};">
+                    [${escapeHTML(parentProject.code)}] ${escapeHTML(parentProject.name)}
+                  </div>
                 </div>
               </div>
-            </div>
+              <div class="lineage-breadcrumb-step" style="border-left:3px solid ${project ? project.color : 'var(--primary)'};">
+                <span style="font-size:1rem;">⚙️</span>
+                <div>
+                  <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">2. SUBSISTEMA / PARTE</div>
+                  <div style="font-weight:600; color:${project ? project.color : 'var(--text-main)'};">
+                    [${escapeHTML(project.code)}] ${escapeHTML(project.name)}
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div class="lineage-breadcrumb-step">
+                <span style="font-size:1rem;">🏢</span>
+                <div>
+                  <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">1. PROYECTO RAÍZ</div>
+                  <div style="font-weight:600; color:${project ? project.color : 'var(--text-main)'};">
+                    ${project ? `[${escapeHTML(project.code)}] ${escapeHTML(project.name)}` : '🌐 Transversal (Sin proyecto específico)'}
+                  </div>
+                </div>
+              </div>
+            `}
 
             <div class="lineage-breadcrumb-step" style="border-left:3px solid ${meeting ? 'var(--info)' : 'var(--border-focus)'};">
               <span style="font-size:1rem;">${meeting ? '🤝' : '📌'}</span>
               <div>
-                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">2. PROCEDENCIA / REUNIÓN</div>
+                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">${parentProject ? '3' : '2'}. PROCEDENCIA / REUNIÓN</div>
                 <div style="font-weight:600; color:var(--text-main);">
-                  ${meeting ? `${escapeHTML(meeting.title)} <span style="font-size:0.72rem; color:var(--text-muted);">(${formatLineageDate(meeting.date)})</span>` : 'Planificada directamente en proyecto (sin acta de reunión)'}
+                  ${meeting ? `${escapeHTML(meeting.title)} <span style="font-size:0.72rem; color:var(--text-muted);">(${formatLineageDate(meeting.date)})</span>` : 'Planificada directamente en el proyecto (sin acta de reunión)'}
                 </div>
                 ${meeting && meeting.attendees ? `<div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Asistentes del acuerdo: ${meeting.attendees.map(a => escapeHTML(a)).join(', ')}</div>` : ''}
               </div>
@@ -5702,7 +6083,7 @@
             <div class="lineage-breadcrumb-step" style="border-left:3px solid var(--success);">
               <span style="font-size:1rem;">✅</span>
               <div>
-                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">3. COMPROMISO ASIGNADO</div>
+                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">${parentProject ? '4' : '3'}. COMPROMISO ASIGNADO</div>
                 <div style="font-size:0.8rem; color:var(--text-main);">
                   Responsable: <strong>@${escapeHTML(task.assignedTo || 'Sin asignar')}</strong> • Estado: <strong>${statusLabels[task.status] || task.status}</strong>
                 </div>
@@ -5726,7 +6107,7 @@
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
               <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--info);">
-                🤝 Reunión y Compromisos N酸idos
+                🤝 Reunión y Compromisos Acordados
               </span>
               <h3 style="font-family:var(--font-display); font-size:1.05rem; font-weight:700; margin:2px 0 0 0;">
                 ${escapeHTML(meeting.title)}
@@ -5742,9 +6123,12 @@
             <div class="lineage-breadcrumb-step">
               <span style="font-size:1rem;">🏢</span>
               <div>
-                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">PROYECTOS VINCULADOS (${associatedProjects.length})</div>
+                <div style="font-size:0.7rem; color:var(--text-dim); font-weight:700;">PROYECTOS O SUBSISTEMAS VINCULADOS (${associatedProjects.length})</div>
                 <div style="font-weight:600; font-size:0.78rem;">
-                  ${associatedProjects.length > 0 ? associatedProjects.map(p => `<span class="badge" style="background:${p.color}22; color:${p.color}; border:1px solid ${p.color}44; margin-right:4px;">${escapeHTML(p.name)}</span>`).join('') : '<span style="color:var(--text-muted);">Reunión General / Transversal</span>'}
+                  ${associatedProjects.length > 0 ? associatedProjects.map(p => {
+                    const parent = p.parentId ? appData.projects.find(pr => pr.id === p.parentId) : null;
+                    return `<span class="badge" style="background:${p.color}22; color:${p.color}; border:1px solid ${p.color}44; margin-right:4px;">${parent ? `↳ [${p.code}] ${escapeHTML(p.name)}` : `📁 [${p.code}] ${escapeHTML(p.name)}`}</span>`;
+                  }).join('') : '<span style="color:var(--text-muted);">Reunión General / Transversal</span>'}
                 </div>
               </div>
             </div>
@@ -5771,25 +6155,23 @@
             <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:5px 12px;" onclick="openEditMeetingModal('${meeting.id}')">✏️ Editar Reunión y Acta</button>
           </div>
         `;
-      } else if (type === 'project') {
-        const isTransversal = id === 'prj-transversal';
-        const project = isTransversal ? null : appData.projects.find(p => p.id === id);
-        const projectMeetings = isTransversal 
-          ? appData.meetings.filter(m => !m.projectIds || m.projectIds.length === 0)
-          : appData.meetings.filter(m => m.projectIds && m.projectIds.includes(id));
-        const projectTasks = isTransversal
-          ? appData.tasks.filter(t => !t.projectId)
-          : appData.tasks.filter(t => t.projectId === id);
+      } else if (type === 'subproject') {
+        const sub = appData.projects.find(p => p.id === id);
+        if (!sub) return;
+        const parentProject = sub.parentId ? appData.projects.find(p => p.id === sub.parentId) : null;
+        const subMeetings = appData.meetings.filter(m => m.projectIds && m.projectIds.includes(id));
+        const subTasks = appData.tasks.filter(t => t.projectId === id);
 
         panelHTML = `
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-              <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:${project ? project.color : 'var(--primary)'};">
-                🏢 Raíz de Cartera de Proyecto
+              <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:${sub.color || 'var(--primary)'};">
+                ⚙️ Subsistema / Parte de Proyecto
               </span>
               <h3 style="font-family:var(--font-display); font-size:1.05rem; font-weight:700; margin:2px 0 0 0;">
-                ${project ? `[${escapeHTML(project.code)}] ${escapeHTML(project.name)}` : 'Tareas y Reuniones Generales'}
+                [${escapeHTML(sub.code)}] ${escapeHTML(sub.name)}
               </h3>
+              ${parentProject ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">📁 Pertenece al Proyecto Maestro: <strong>${escapeHTML(parentProject.name)}</strong> (${parentProject.code})</div>` : ''}
             </div>
             <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" style="padding:4px 8px;" title="Cerrar panel">✕</button>
           </div>
@@ -5799,20 +6181,70 @@
               <span style="font-size:1.2rem;">🤝</span>
               <div>
                 <div style="font-size:0.68rem; color:var(--text-dim); font-weight:700;">REUNIONES</div>
-                <div style="font-size:1rem; font-weight:700;">${projectMeetings.length} celebradas</div>
+                <div style="font-size:1rem; font-weight:700;">${subMeetings.length} celebradas</div>
               </div>
             </div>
             <div class="lineage-breadcrumb-step">
               <span style="font-size:1.2rem;">📌</span>
               <div>
-                <div style="font-size:0.68rem; color:var(--text-dim); font-weight:700;">TAREAS ACTIVAS</div>
+                <div style="font-size:0.68rem; color:var(--text-dim); font-weight:700;">TAREAS VINCULADAS</div>
+                <div style="font-size:1rem; font-weight:700;">${subTasks.length} registradas</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
+            <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:5px 12px;" onclick="filterAndGoToKanban('${sub.id}')">📊 Ver en Kanban</button>
+            <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:5px 12px;" onclick="openEditProjectModal('${sub.id}')">✏️ Editar Subproyecto</button>
+          </div>
+        `;
+      } else if (type === 'project') {
+        const isTransversal = id === 'prj-transversal';
+        const project = isTransversal ? null : appData.projects.find(p => p.id === id);
+        const subprojects = isTransversal ? [] : appData.projects.filter(p => p.parentId === id);
+        const familyIds = isTransversal ? ['prj-transversal'] : getProjectFamilyIds(id);
+
+        const projectMeetings = isTransversal 
+          ? appData.meetings.filter(m => !m.projectIds || m.projectIds.length === 0)
+          : appData.meetings.filter(m => m.projectIds && m.projectIds.some(pid => familyIds.includes(pid)));
+        const projectTasks = isTransversal
+          ? appData.tasks.filter(t => !t.projectId)
+          : appData.tasks.filter(t => familyIds.includes(t.projectId));
+
+        panelHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:${project ? project.color : 'var(--primary)'};">
+                🏢 ${subprojects.length > 0 ? 'Proyecto Maestro / Cartera' : 'Raíz de Proyecto'}
+              </span>
+              <h3 style="font-family:var(--font-display); font-size:1.05rem; font-weight:700; margin:2px 0 0 0;">
+                ${project ? `[${escapeHTML(project.code)}] ${escapeHTML(project.name)}` : 'Tareas y Reuniones Generales'}
+              </h3>
+              ${subprojects.length > 0 ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">⚙️ Estructura: <strong>${subprojects.length} subsistemas/partes</strong></div>` : ''}
+            </div>
+            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" style="padding:4px 8px;" title="Cerrar panel">✕</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
+            <div class="lineage-breadcrumb-step">
+              <span style="font-size:1.2rem;">🤝</span>
+              <div>
+                <div style="font-size:0.68rem; color:var(--text-dim); font-weight:700;">REUNIONES</div>
+                <div style="font-size:1rem; font-weight:700;">${projectMeetings.length} vinculadas</div>
+              </div>
+            </div>
+            <div class="lineage-breadcrumb-step">
+              <span style="font-size:1.2rem;">📌</span>
+              <div>
+                <div style="font-size:0.68rem; color:var(--text-dim); font-weight:700;">TAREAS TOTALES</div>
                 <div style="font-size:1rem; font-weight:700;">${projectTasks.length} registradas</div>
               </div>
             </div>
           </div>
 
           <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
-            ${project ? `<button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:5px 12px;" onclick="openEditProjectModal('${project.id}')">✏️ Editar Ficha de Proyecto</button>` : ''}
+            ${project ? `<button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:5px 12px;" onclick="filterAndGoToKanban('${project.id}')">📊 Ver Todo en Kanban</button>` : ''}
+            ${project ? `<button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:5px 12px;" onclick="openEditProjectModal('${project.id}')">✏️ Editar Proyecto</button>` : ''}
           </div>
         `;
       }
@@ -5820,8 +6252,10 @@
       panel.innerHTML = panelHTML;
       panel.style.display = 'flex';
     }
-    window.selectLineageNode = selectLineageNode;
 
+    /* ==========================================================================
+       RENDERIZADO: 7.5 GRAFO DE TRAZABILIDAD Y ORIGEN (MULTINIVEL PROYECTO ➔ SUBPROYECTO ➔ REUNIONES ➔ TAREAS)
+       ========================================================================== */
     function renderLineageView() {
       const viewport = document.getElementById('lineage-viewport');
       const canvas = document.getElementById('lineage-canvas');
@@ -5839,27 +6273,27 @@
       // Sincronizar selector de proyectos con filtro global
       if (projectFilterEl) {
         const curVal = document.getElementById('filter-project')?.value || 'all';
-        const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
+        const hierarchical = getHierarchicalProjectsList(true);
         projectFilterEl.innerHTML = `
           <option value="all">Todos los Proyectos</option>
           <option value="none">Transversales (Sin Proyecto)</option>
-          ${activeProjects.map(p => `<option value="${p.id}">● ${escapeHTML(p.name)}</option>`).join('')}
+          ${hierarchical.map(item => `<option value="${item.project.id}">${renderProjectOptionHTML(item)}</option>`).join('')}
         `;
         projectFilterEl.value = curVal;
       }
 
       const selectedPrjId = projectFilterEl ? projectFilterEl.value : 'all';
       const selectedOrigin = originFilterEl ? originFilterEl.value : 'all';
-
       const isTransversalFilter = selectedPrjId === 'none' || selectedOrigin === 'transversal';
 
-      // 1. Filtrar proyectos a mostrar
-      let projectsToShow = [];
+      // 1. Filtrar proyectos a mostrar (separando Raíces y Subproyectos)
+      let rootsToShow = [];
+      let subprojectsToShow = [];
       const hasTransversalTasksOrMeetings = appData.tasks.some(t => !t.projectId) || appData.meetings.some(m => !m.projectIds || m.projectIds.length === 0);
 
       if (isTransversalFilter) {
         if (hasTransversalTasksOrMeetings) {
-          projectsToShow = [{
+          rootsToShow = [{
             id: 'prj-transversal',
             code: 'GENERAL',
             name: 'Transversal / Sin Proyecto',
@@ -5869,9 +6303,11 @@
           }];
         }
       } else if (selectedPrjId === 'all') {
-        projectsToShow = appData.projects.filter(p => isProjectActive(p.id));
+        const activePool = appData.projects.filter(p => isProjectActive(p.id));
+        rootsToShow = activePool.filter(p => !p.parentId || !activePool.some(pr => pr.id === p.parentId));
+        subprojectsToShow = activePool.filter(p => p.parentId && activePool.some(pr => pr.id === p.parentId));
         if (hasTransversalTasksOrMeetings) {
-          projectsToShow.push({
+          rootsToShow.push({
             id: 'prj-transversal',
             code: 'GENERAL',
             name: 'Transversal / Sin Proyecto',
@@ -5881,8 +6317,20 @@
           });
         }
       } else {
-        const prj = appData.projects.find(p => p.id === selectedPrjId);
-        if (prj) projectsToShow = [prj];
+        const activePool = appData.projects.filter(p => isProjectActive(p.id));
+        const selectedPrj = activePool.find(p => p.id === selectedPrjId);
+        if (selectedPrj) {
+          if (selectedPrj.parentId) {
+            // Es un subproyecto: mostramos su proyecto raíz padre y este subproyecto para trazar el linaje completo
+            const parentPrj = activePool.find(p => p.id === selectedPrj.parentId);
+            if (parentPrj) rootsToShow = [parentPrj];
+            subprojectsToShow = [selectedPrj];
+          } else {
+            // Es un proyecto raíz: mostramos este proyecto y todos sus subproyectos
+            rootsToShow = [selectedPrj];
+            subprojectsToShow = activePool.filter(p => p.parentId === selectedPrj.id);
+          }
+        }
       }
 
       // 2. Filtrar reuniones a mostrar
@@ -5890,13 +6338,13 @@
         if (!isMeetingActive(m)) return false;
 
         if (isTransversalFilter) {
-          // Si el filtro es transversal, EXCLUIR cualquier reunión vinculada a proyectos específicos
           if (m.projectIds && m.projectIds.length > 0) return false;
         } else if (selectedPrjId !== 'all') {
-          if (!m.projectIds || !m.projectIds.includes(selectedPrjId)) return false;
+          const familyIds = getProjectFamilyIds(selectedPrjId);
+          if (!m.projectIds || !m.projectIds.some(pid => familyIds.includes(pid))) return false;
         }
 
-        if (selectedOrigin === 'direct_project') return false; // Solo directas
+        if (selectedOrigin === 'direct_project') return false;
         return true;
       });
 
@@ -5905,10 +6353,10 @@
         if (!isProjectActive(t.projectId)) return false;
 
         if (isTransversalFilter) {
-          // Si el filtro es transversal, EXCLUIR cualquier tarea vinculada a proyectos específicos
           if (t.projectId) return false;
         } else if (selectedPrjId !== 'all') {
-          if (t.projectId !== selectedPrjId) return false;
+          const familyIds = getProjectFamilyIds(selectedPrjId);
+          if (!familyIds.includes(t.projectId)) return false;
         }
 
         if (selectedOrigin === 'from_meeting') {
@@ -5920,12 +6368,13 @@
         return true;
       });
 
+      const totalPrjCount = rootsToShow.length + subprojectsToShow.length;
       if (statsEl) {
-        statsEl.textContent = `${projectsToShow.length} Proyectos • ${meetingsToShow.length} Reuniones • ${tasksToShow.length} Tareas trazadas`;
+        statsEl.textContent = `${totalPrjCount} Proyectos/Subsistemas • ${meetingsToShow.length} Reuniones • ${tasksToShow.length} Tareas trazadas`;
       }
 
       // Manejo de estado vacío
-      if (projectsToShow.length === 0 && meetingsToShow.length === 0 && tasksToShow.length === 0) {
+      if (totalPrjCount === 0 && meetingsToShow.length === 0 && tasksToShow.length === 0) {
         svg.innerHTML = '';
         nodesLayer.innerHTML = `
           <div style="padding:60px 20px; text-align:center; width:600px; margin:40px auto; background:var(--bg-surface); border:1px dashed var(--border-subtle); border-radius:var(--radius-lg);">
@@ -5937,38 +6386,65 @@
         return;
       }
 
-      // Layout y Posicionamiento de las 3 Columnas
-      const CARD_PROJECT_W = 280;
+      // Layout y Posicionamiento de las Columnas (3 o 4 columnas si hay subproyectos)
+      const hasSubprojects = subprojectsToShow.length > 0;
+
+      const CARD_PROJECT_W = 270;
       const CARD_PROJECT_H = 94;
-      const CARD_MEETING_W = 320;
+      const CARD_SUBPROJECT_W = 270;
+      const CARD_SUBPROJECT_H = 94;
+      const CARD_MEETING_W = 310;
       const CARD_MEETING_H = 108;
-      const CARD_TASK_W = 320;
+      const CARD_TASK_W = 310;
       const CARD_TASK_H = 88;
 
-      const TIER1_X = 60;
-      const TIER2_X = 490;
-      const TIER3_X = 960;
-      const START_Y = 64;
+      let TIER1_X, TIER2_X, TIER3_X, TIER4_X;
+      if (hasSubprojects) {
+        TIER1_X = 50;   // 1. Proyectos Principales (Cartera / Raíz)
+        TIER2_X = 390;  // 2. Subsistemas / Partes
+        TIER3_X = 750;  // 3. Reuniones y Actas
+        TIER4_X = 1140; // 4. Tareas y Compromisos
+      } else {
+        TIER1_X = 60;   // 1. Proyectos
+        TIER2_X = 490;  // 2. Reuniones y Actas
+        TIER3_X = 960;  // 3. Tareas y Compromisos
+      }
 
+      const START_Y = 64;
       const GAP_PROJECTS = 32;
       const GAP_MEETINGS = 28;
       const GAP_TASKS = 22;
 
       // Calcular posiciones de cada tarjeta
       const projectCoords = new Map();
-      projectsToShow.forEach((p, idx) => {
+      rootsToShow.forEach((p, idx) => {
         projectCoords.set(p.id, {
           x: TIER1_X,
           y: START_Y + idx * (CARD_PROJECT_H + GAP_PROJECTS),
           w: CARD_PROJECT_W,
-          h: CARD_PROJECT_H
+          h: CARD_PROJECT_H,
+          color: p.color
         });
       });
 
+      const subprojectCoords = new Map();
+      if (hasSubprojects) {
+        subprojectsToShow.forEach((sub, idx) => {
+          subprojectCoords.set(sub.id, {
+            x: TIER2_X,
+            y: START_Y + idx * (CARD_SUBPROJECT_H + GAP_PROJECTS),
+            w: CARD_SUBPROJECT_W,
+            h: CARD_SUBPROJECT_H,
+            color: sub.color
+          });
+        });
+      }
+
       const meetingCoords = new Map();
+      const meetingX = hasSubprojects ? TIER3_X : TIER2_X;
       meetingsToShow.forEach((m, idx) => {
         meetingCoords.set(m.id, {
-          x: TIER2_X,
+          x: meetingX,
           y: START_Y + idx * (CARD_MEETING_H + GAP_MEETINGS),
           w: CARD_MEETING_W,
           h: CARD_MEETING_H
@@ -5976,9 +6452,10 @@
       });
 
       const taskCoords = new Map();
+      const taskX = hasSubprojects ? TIER4_X : TIER3_X;
       tasksToShow.forEach((t, idx) => {
         taskCoords.set(t.id, {
-          x: TIER3_X,
+          x: taskX,
           y: START_Y + idx * (CARD_TASK_H + GAP_TASKS),
           w: CARD_TASK_W,
           h: CARD_TASK_H
@@ -5986,11 +6463,12 @@
       });
 
       // Calcular dimensiones totales del lienzo
-      const maxProjectY = START_Y + projectsToShow.length * (CARD_PROJECT_H + GAP_PROJECTS);
+      const maxRootY = START_Y + rootsToShow.length * (CARD_PROJECT_H + GAP_PROJECTS);
+      const maxSubY = hasSubprojects ? (START_Y + subprojectsToShow.length * (CARD_SUBPROJECT_H + GAP_PROJECTS)) : 0;
       const maxMeetingY = START_Y + meetingsToShow.length * (CARD_MEETING_H + GAP_MEETINGS);
       const maxTaskY = START_Y + tasksToShow.length * (CARD_TASK_H + GAP_TASKS);
-      const totalCanvasHeight = Math.max(maxProjectY, maxMeetingY, maxTaskY, 560) + 60;
-      const totalCanvasWidth = TIER3_X + CARD_TASK_W + 100;
+      const totalCanvasHeight = Math.max(maxRootY, maxSubY, maxMeetingY, maxTaskY, 560) + 60;
+      const totalCanvasWidth = (hasSubprojects ? TIER4_X : TIER3_X) + CARD_TASK_W + 100;
 
       canvas.style.width = `${totalCanvasWidth}px`;
       canvas.style.height = `${totalCanvasHeight}px`;
@@ -5999,7 +6477,7 @@
       svg.style.width = `${totalCanvasWidth}px`;
       svg.style.height = `${totalCanvasHeight}px`;
 
-      // 4. GENERAR RUTAS SVG (CURVAS BEZIER DE LINAJE)
+      // 4. GENERAR RUTAS SVG (CURVAS BEZIER DE LINAJE MULTINIVEL)
       let svgContent = `
         <defs>
           <linearGradient id="lineageGradientPtoM" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -6013,44 +6491,104 @@
         </defs>
       `;
 
-      // Encabezados de columnas visuales en SVG/Canvas
-      let headersHTML = `
-        <div style="position:absolute; top:18px; left:${TIER1_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#4f46e5;"></span>
-          1. Proyectos (Entidad Raíz)
-        </div>
-        <div style="position:absolute; top:18px; left:${TIER2_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#06b6d4;"></span>
-          2. Reuniones y Actas (Espacio de decisión)
-        </div>
-        <div style="position:absolute; top:18px; left:${TIER3_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
-          3. Tareas y Compromisos (Ejecución)
-        </div>
-      `;
+      // Encabezados de columnas visuales en Canvas
+      let headersHTML = '';
+      if (hasSubprojects) {
+        headersHTML = `
+          <div style="position:absolute; top:18px; left:${TIER1_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#4f46e5;"></span>
+            1. Proyectos Principales (Cartera)
+          </div>
+          <div style="position:absolute; top:18px; left:${TIER2_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#8b5cf6;"></span>
+            2. Subsistemas / Partes (Estructura)
+          </div>
+          <div style="position:absolute; top:18px; left:${TIER3_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#06b6d4;"></span>
+            3. Reuniones y Actas (Espacio de decisión)
+          </div>
+          <div style="position:absolute; top:18px; left:${TIER4_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+            4. Tareas y Compromisos (Ejecución)
+          </div>
+        `;
+      } else {
+        headersHTML = `
+          <div style="position:absolute; top:18px; left:${TIER1_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#4f46e5;"></span>
+            1. Proyectos (Entidad Raíz)
+          </div>
+          <div style="position:absolute; top:18px; left:${TIER2_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#06b6d4;"></span>
+            2. Reuniones y Actas (Espacio de decisión)
+          </div>
+          <div style="position:absolute; top:18px; left:${TIER3_X}px; font-size:0.75rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+            3. Tareas y Compromisos (Ejecución)
+          </div>
+        `;
+      }
 
-      // A) Conexiones Proyecto ➔ Reunión
+      // A) Conexiones Proyecto Principal ➔ Subproyecto (Jerarquía multinivel)
+      if (hasSubprojects) {
+        subprojectsToShow.forEach(sub => {
+          if (!sub.parentId || !projectCoords.has(sub.parentId)) return;
+          const pPos = projectCoords.get(sub.parentId);
+          const subPos = subprojectCoords.get(sub.id);
+          if (!pPos || !subPos) return;
+
+          const startX = pPos.x + pPos.w;
+          const startY = pPos.y + pPos.h / 2;
+          const endX = subPos.x;
+          const endY = subPos.y + subPos.h / 2;
+          const dx = (endX - startX) * 0.5;
+          const strokeColor = sub.color || pPos.color || '#8b5cf6';
+
+          svgContent += `
+            <path class="lineage-edge"
+                  data-edge-key="p_${sub.parentId}->sub_${sub.id}"
+                  d="M ${startX} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX} ${endY}"
+                  stroke="${strokeColor}"
+                  stroke-width="2.2"
+                  stroke-opacity="0.6" />
+          `;
+        });
+      }
+
+      // B) Conexiones a Reunión (desde Subproyecto o desde Proyecto Principal)
       meetingsToShow.forEach(m => {
         const mPos = meetingCoords.get(m.id);
         if (!mPos) return;
 
         const pIds = (m.projectIds && m.projectIds.length > 0) ? m.projectIds : ['prj-transversal'];
         pIds.forEach(pid => {
-          const pPos = projectCoords.get(pid);
-          if (!pPos) return;
+          let sourcePos = null;
+          let edgeKey = '';
+          let strokeColor = '#64748b';
 
-          const startX = pPos.x + pPos.w;
-          const startY = pPos.y + pPos.h / 2;
+          if (hasSubprojects && subprojectCoords.has(pid)) {
+            sourcePos = subprojectCoords.get(pid);
+            edgeKey = `sub_${pid}->m_${m.id}`;
+            const subObj = appData.projects.find(p => p.id === pid);
+            strokeColor = subObj ? subObj.color : '#8b5cf6';
+          } else if (projectCoords.has(pid)) {
+            sourcePos = projectCoords.get(pid);
+            edgeKey = `p_${pid}->m_${m.id}`;
+            const prjObj = appData.projects.find(p => p.id === pid);
+            strokeColor = prjObj ? prjObj.color : '#64748b';
+          }
+
+          if (!sourcePos) return;
+
+          const startX = sourcePos.x + sourcePos.w;
+          const startY = sourcePos.y + sourcePos.h / 2;
           const endX = mPos.x;
           const endY = mPos.y + mPos.h / 2;
           const dx = (endX - startX) * 0.5;
 
-          const prjObj = appData.projects.find(p => p.id === pid);
-          const strokeColor = prjObj ? prjObj.color : '#64748b';
-
           svgContent += `
             <path class="lineage-edge"
-                  data-edge-key="p_${pid}->m_${m.id}"
+                  data-edge-key="${edgeKey}"
                   d="M ${startX} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX} ${endY}"
                   stroke="${strokeColor}"
                   stroke-opacity="0.5" />
@@ -6058,7 +6596,7 @@
         });
       });
 
-      // B) Conexiones Reunión ➔ Tarea
+      // C) Conexiones Reunión ➔ Tarea
       tasksToShow.forEach(t => {
         const tPos = taskCoords.get(t.id);
         if (!tPos) return;
@@ -6079,22 +6617,34 @@
                   stroke-opacity="0.55" />
           `;
         } else {
-          // Conexión DIRECTA Proyecto ➔ Tarea (sin pasar por reunión)
+          // Conexión DIRECTA a Tarea (sin pasar por reunión)
           const pId = t.projectId || 'prj-transversal';
-          if (projectCoords.has(pId)) {
-            const pPos = projectCoords.get(pId);
-            const startX = pPos.x + pPos.w;
-            const startY = pPos.y + pPos.h / 2;
+          let sourcePos = null;
+          let edgeKey = '';
+          let strokeColor = '#94a3b8';
+
+          if (hasSubprojects && subprojectCoords.has(pId)) {
+            sourcePos = subprojectCoords.get(pId);
+            edgeKey = `sub_${pId}->t_${t.id}`;
+            const subObj = appData.projects.find(p => p.id === pId);
+            strokeColor = subObj ? subObj.color : '#8b5cf6';
+          } else if (projectCoords.has(pId)) {
+            sourcePos = projectCoords.get(pId);
+            edgeKey = `p_${pId}->t_${t.id}`;
+            const prjObj = appData.projects.find(p => p.id === pId);
+            strokeColor = prjObj ? prjObj.color : '#94a3b8';
+          }
+
+          if (sourcePos) {
+            const startX = sourcePos.x + sourcePos.w;
+            const startY = sourcePos.y + sourcePos.h / 2;
             const endX = tPos.x;
             const endY = tPos.y + tPos.h / 2;
             const dx = (endX - startX) * 0.45;
 
-            const prjObj = appData.projects.find(p => p.id === pId);
-            const strokeColor = prjObj ? prjObj.color : '#94a3b8';
-
             svgContent += `
               <path class="lineage-edge direct-dash"
-                    data-edge-key="p_${pId}->t_${t.id}"
+                    data-edge-key="${edgeKey}"
                     d="M ${startX} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX} ${endY}"
                     stroke="${strokeColor}"
                     stroke-opacity="0.4" />
@@ -6108,12 +6658,14 @@
       // 5. GENERAR TARJETAS EN NODES LAYER
       let cardsHTML = headersHTML;
 
-      // A) Tarjetas de Proyectos
-      projectsToShow.forEach(prj => {
+      // A) Tarjetas de Proyectos Principales (Raíz)
+      rootsToShow.forEach(prj => {
         const pos = projectCoords.get(prj.id);
         const isTransversal = prj.id === 'prj-transversal';
-        const tasksCount = isTransversal ? appData.tasks.filter(t => !t.projectId).length : appData.tasks.filter(t => t.projectId === prj.id).length;
-        const meetingsCount = isTransversal ? appData.meetings.filter(m => !m.projectIds || m.projectIds.length === 0).length : appData.meetings.filter(m => m.projectIds && m.projectIds.includes(prj.id)).length;
+        const subprojects = isTransversal ? [] : appData.projects.filter(p => p.parentId === prj.id);
+        const familyIds = isTransversal ? ['prj-transversal'] : getProjectFamilyIds(prj.id);
+        const tasksCount = isTransversal ? appData.tasks.filter(t => !t.projectId).length : appData.tasks.filter(t => familyIds.includes(t.projectId)).length;
+        const meetingsCount = isTransversal ? appData.meetings.filter(m => !m.projectIds || m.projectIds.length === 0).length : appData.meetings.filter(m => m.projectIds && m.projectIds.some(pid => familyIds.includes(pid))).length;
 
         cardsHTML += `
           <div class="lineage-card lineage-card-project"
@@ -6130,7 +6682,7 @@
                 ${escapeHTML(prj.code)}
               </span>
               <span style="font-size:0.72rem; color:var(--text-dim);">
-                ${prj.status === 'cerrado' ? '📁 Cerrado' : '🟢 En curso'}
+                ${subprojects.length > 0 ? `📁 ${subprojects.length} partes` : (prj.status === 'cerrado' ? '🔒 Cerrado' : '🟢 En curso')}
               </span>
             </div>
             <div style="font-weight:700; font-size:0.86rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;" title="${escapeHTML(prj.name)}">
@@ -6144,7 +6696,44 @@
         `;
       });
 
-      // B) Tarjetas de Reuniones / Actas
+      // B) Tarjetas de Subsistemas / Subproyectos
+      if (hasSubprojects) {
+        subprojectsToShow.forEach(sub => {
+          const pos = subprojectCoords.get(sub.id);
+          const tasksCount = appData.tasks.filter(t => t.projectId === sub.id).length;
+          const meetingsCount = appData.meetings.filter(m => m.projectIds && m.projectIds.includes(sub.id)).length;
+
+          cardsHTML += `
+            <div class="lineage-card lineage-card-subproject"
+                 id="node-sub-${sub.id}"
+                 data-node-type="subproject"
+                 data-node-id="${sub.id}"
+                 style="left:${pos.x}px; top:${pos.y}px; border-left:4px solid ${sub.color || '#8b5cf6'};"
+                 onmouseenter="highlightLineage('subproject', '${sub.id}')"
+                 onmouseleave="clearLineageHighlight()"
+                 onclick="selectLineageNode('subproject', '${sub.id}')"
+                 ondblclick="openEditProjectModal('${sub.id}')">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="badge" style="background:${sub.color || '#8b5cf6'}22; color:${sub.color || '#8b5cf6'}; border:1px solid ${sub.color || '#8b5cf6'}44; font-weight:700;">
+                  ⚙️ ${escapeHTML(sub.code)}
+                </span>
+                <span style="font-size:0.7rem; color:var(--text-dim);">
+                  ${sub.status === 'cerrado' ? '🔒 Cerrado' : '🟢 Parte activa'}
+                </span>
+              </div>
+              <div style="font-weight:700; font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;" title="${escapeHTML(sub.name)}">
+                ${escapeHTML(sub.name)}
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:0.74rem; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:4px;">
+                <span>🤝 ${meetingsCount} Reuniones</span>
+                <span>📌 ${tasksCount} Tareas</span>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      // C) Tarjetas de Reuniones / Actas
       meetingsToShow.forEach(m => {
         const pos = meetingCoords.get(m.id);
         const actionTasks = appData.tasks.filter(t => t.meetingId === m.id || (m.actionItemIds && m.actionItemIds.includes(t.id)));
@@ -6181,7 +6770,7 @@
         `;
       });
 
-      // C) Tarjetas de Tareas / Compromisos
+      // D) Tarjetas de Tareas / Compromisos
       const priorityColors = {
         urgente: '#ef4444',
         alta: '#f59e0b',
@@ -6203,7 +6792,6 @@
         const st = statusBadges[t.status] || { label: t.status, color: 'var(--text-dim)' };
         const subCount = t.subtasks ? t.subtasks.length : 0;
         const subDone = t.subtasks ? t.subtasks.filter(s => s.completed).length : 0;
-
         const progress = getTaskProgress(t);
 
         cardsHTML += `
@@ -6243,6 +6831,7 @@
       nodesLayer.innerHTML = cardsHTML;
     }
     window.renderLineageView = renderLineageView;
+
 
     /* ==========================================================================
        RENDERIZADO: 8. DASHBOARD & MÉTRICAS (SVG NATIVO)
@@ -6454,29 +7043,70 @@
     function renderTaskOptionGroup(tasks, selectedProjectId) {
       if (!tasks || tasks.length === 0) return '';
       if (selectedProjectId) {
-        const sameProject = tasks.filter(t => t.projectId === selectedProjectId);
-        const otherProject = tasks.filter(t => t.projectId !== selectedProjectId);
-        const prj = appData.projects.find(p => p.id === selectedProjectId);
-        const prjName = prj ? prj.code : 'Proyecto Actual';
+        const prj = (appData.projects || []).find(p => p.id === selectedProjectId);
+        // Raíz del proyecto (si es subproyecto, obtener su padre para vincular a la familia)
+        const rootId = (prj && prj.parentId) ? prj.parentId : selectedProjectId;
+        const rootPrj = (appData.projects || []).find(p => p.id === rootId) || prj;
+        const familyIds = getProjectFamilyIds(rootId);
+
+        // 1. Tareas de la misma parte o subproyecto específico
+        const exactProjectTasks = tasks.filter(t => t.projectId === selectedProjectId);
+
+        // 2. Tareas de otras partes de la misma familia de proyecto
+        const sisterFamilyTasks = tasks.filter(t => t.projectId !== selectedProjectId && familyIds.includes(t.projectId));
+
+        // 3. Tareas de otros proyectos completamente ajenos o transversales
+        const otherProjectTasks = tasks.filter(t => !familyIds.includes(t.projectId));
+
         let html = '';
-        if (sameProject.length > 0) {
-          html += `<optgroup label="Tareas de ${prjName}">` +
-            sameProject.map(t => `<option value="${t.id}">[${t.code}] ${escapeHTML(t.title)}</option>`).join('') +
-            `</optgroup>`;
+
+        if (prj && prj.parentId) {
+          // Es un subproyecto (ej: Mecánica)
+          if (exactProjectTasks.length > 0) {
+            html += `<optgroup label="Tareas de ${escapeHTML(prj.name)} (${prj.code})">` +
+              exactProjectTasks.map(t => `<option value="${t.id}">[${t.code}] ${escapeHTML(t.title)}</option>`).join('') +
+              `</optgroup>`;
+          }
+          if (sisterFamilyTasks.length > 0) {
+            html += `<optgroup label="Otras partes de ${escapeHTML(rootPrj ? rootPrj.name : 'Proyecto Superior')}">` +
+              sisterFamilyTasks.map(t => {
+                const p = t.projectId ? (appData.projects || []).find(pr => pr.id === t.projectId) : null;
+                const tag = p ? `[${p.code}] ` : '';
+                return `<option value="${t.id}">${tag}[${t.code}] ${escapeHTML(t.title)}</option>`;
+              }).join('') +
+              `</optgroup>`;
+          }
+        } else {
+          // Es un proyecto padre o raíz (ej: Nuevo Motor de Puerta)
+          const familyTasks = tasks.filter(t => familyIds.includes(t.projectId));
+          if (familyTasks.length > 0) {
+            const label = familyIds.length > 1 
+              ? `Tareas de ${escapeHTML(rootPrj ? rootPrj.name : 'Proyecto')} y Subproyectos` 
+              : `Tareas de ${escapeHTML(rootPrj ? rootPrj.name : 'Proyecto')}`;
+            html += `<optgroup label="${label}">` +
+              familyTasks.map(t => {
+                const p = t.projectId ? (appData.projects || []).find(pr => pr.id === t.projectId) : null;
+                const tag = (p && p.id !== rootId) ? `[${p.code}] ` : (p ? `[${p.code}] ` : '');
+                return `<option value="${t.id}">${tag}[${t.code}] ${escapeHTML(t.title)}</option>`;
+              }).join('') +
+              `</optgroup>`;
+          }
         }
-        if (otherProject.length > 0) {
+
+        if (otherProjectTasks.length > 0) {
           html += `<optgroup label="Otros Proyectos y Transversales">` +
-            otherProject.map(t => {
-              const p = t.projectId ? appData.projects.find(pr => pr.id === t.projectId) : null;
+            otherProjectTasks.map(t => {
+              const p = t.projectId ? (appData.projects || []).find(pr => pr.id === t.projectId) : null;
               const tag = p ? `[${p.code}] ` : '[Transversal] ';
               return `<option value="${t.id}">${tag}[${t.code}] ${escapeHTML(t.title)}</option>`;
             }).join('') +
             `</optgroup>`;
         }
+
         return html;
       } else {
         return tasks.map(t => {
-          const p = t.projectId ? appData.projects.find(pr => pr.id === t.projectId) : null;
+          const p = t.projectId ? (appData.projects || []).find(pr => pr.id === t.projectId) : null;
           const tag = p ? `[${p.code}] ` : '[Transversal] ';
           return `<option value="${t.id}">${tag}[${t.code}] ${escapeHTML(t.title)}</option>`;
         }).join('');
@@ -6545,6 +7175,7 @@
       // 3. Poblar select de tareas bloqueantes disponibles (clasificadas por proyecto)
       if (addBlockerSelect) {
         const availableBlockers = appData.tasks.filter(t => 
+          isProjectActive(t.projectId) &&
           t.id !== currentTaskId && 
           !currentTaskBlockedByBuffer.includes(t.id) &&
           !currentTaskBlocksBuffer.includes(t.id)
@@ -6556,6 +7187,7 @@
       // 4. Poblar select de tareas a bloquear disponibles (clasificadas por proyecto)
       if (addBlockingSelect) {
         const availableToBlock = appData.tasks.filter(t => 
+          isProjectActive(t.projectId) &&
           t.id !== currentTaskId && 
           !currentTaskBlocksBuffer.includes(t.id) &&
           !currentTaskBlockedByBuffer.includes(t.id)
@@ -6767,22 +7399,15 @@
     }
 
     function populateTaskFormSelectors(currentTaskId) {
-      // Proyectos (solo proyectos en curso)
+      // Proyectos (con jerarquía visual y sangría)
       const prjSelect = document.getElementById('task-project-select');
-      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
-      prjSelect.innerHTML = `<option value="">-- Sin Proyecto (Transversal / General) --</option>` +
-        activeProjects.map(p => `<option value="${p.id}">${escapeHTML(p.name)} (${p.code})</option>`).join('');
+      const curTaskPrjId = currentTaskId ? appData.tasks.find(t => t.id === currentTaskId)?.projectId : null;
+      const hierarchical = getHierarchicalProjectsList(true, curTaskPrjId);
 
-      // Si la tarea actual pertenece a un proyecto cerrado, agregarlo como opción deshabilitada para no perder la asociación
-      if (currentTaskId) {
-        const curTask = appData.tasks.find(t => t.id === currentTaskId);
-        if (curTask && curTask.projectId && !activeProjects.some(p => p.id === curTask.projectId)) {
-          const prj = appData.projects.find(p => p.id === curTask.projectId);
-          if (prj) {
-            prjSelect.innerHTML += `<option value="${prj.id}">🔒 ${escapeHTML(prj.name)} (${prj.code}) [Cerrado]</option>`;
-          }
-        }
-      }
+      prjSelect.innerHTML = `<option value="">-- Sin Proyecto (Transversal / General) --</option>` +
+        hierarchical.map(item => `
+          <option value="${item.project.id}">${renderProjectOptionHTML(item)}</option>
+        `).join('');
     }
 
     /**
@@ -7118,21 +7743,23 @@
       const container = document.getElementById('meeting-projects-checkboxes');
       if (!container) return;
 
-      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
-      const projectsToDisplay = appData.projects.filter(p => p.status !== 'cerrado' || (selectedProjectIds && selectedProjectIds.includes(p.id)));
+      const hierarchical = getHierarchicalProjectsList(false);
+      const activeOrSelected = hierarchical.filter(item => item.project.status !== 'cerrado' || (selectedProjectIds && selectedProjectIds.includes(item.project.id)));
 
-      if (projectsToDisplay.length === 0) {
+      if (activeOrSelected.length === 0) {
         container.innerHTML = `<span style="font-size:0.75rem; color:var(--text-dim);">No hay proyectos disponibles.</span>`;
         return;
       }
 
-      container.innerHTML = projectsToDisplay.map(p => {
+      container.innerHTML = activeOrSelected.map(item => {
+        const p = item.project;
         const isClosed = p.status === 'cerrado';
+        const isChild = item.level > 0;
         return `
-          <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; cursor:pointer;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; cursor:pointer; width:100%; ${isChild ? 'padding-left:18px; opacity:0.95;' : 'font-weight:600;'}">
             <input type="checkbox" value="${p.id}" ${(selectedProjectIds || []).includes(p.id) ? 'checked' : ''}>
-            <span style="color:${isClosed ? 'var(--text-dim)' : p.color}; font-weight:600;">
-              ● ${escapeHTML(p.name)} ${isClosed ? '(🔒 Cerrado)' : ''}
+            <span style="color:${isClosed ? 'var(--text-dim)' : p.color};">
+              ${isChild ? '↳ ⚙️' : (item.hasChildren ? '📁' : '●')} ${escapeHTML(p.name)} (${escapeHTML(p.code)}) ${isClosed ? '(🔒 Cerrado)' : ''}
             </span>
           </label>
         `;
@@ -7511,11 +8138,97 @@
       showToast('Reunión y actas guardadas correctamente', 'success');
     }
 
+    /* ==========================================================================
+       JERARQUÍA DE PROYECTOS (PROYECTO PADRE ➔ SUBPROYECTOS / SUBSISTEMAS)
+       ========================================================================== */
+    function getHierarchicalProjectsList(activeOnly = true, extraProjectId = null) {
+      const all = appData.projects || [];
+      const pool = all.filter(p => {
+        if (!activeOnly) return true;
+        if (extraProjectId && p.id === extraProjectId) return true;
+        return p.status !== 'cerrado';
+      });
+
+      // Proyectos raíz (sin parentId o cuyo parent no está en la lista actual)
+      const roots = pool.filter(p => !p.parentId || !pool.some(pr => pr.id === p.parentId));
+      const result = [];
+
+      roots.forEach(root => {
+        const children = pool.filter(p => p.parentId === root.id);
+        result.push({
+          project: root,
+          level: 0,
+          hasChildren: children.length > 0,
+          parent: null
+        });
+        children.forEach(child => {
+          result.push({
+            project: child,
+            level: 1,
+            hasChildren: false,
+            parent: root
+          });
+        });
+      });
+
+      // Proyectos huérfanos que puedan haber quedado por inconsistencia
+      pool.forEach(p => {
+        if (!result.some(item => item.project.id === p.id)) {
+          result.push({ project: p, level: 0, hasChildren: false, parent: null });
+        }
+      });
+
+      return result;
+    }
+
+    function renderProjectOptionHTML(item) {
+      const p = item.project;
+      const isClosed = p.status === 'cerrado' ? ' [🔒 Cerrado]' : '';
+      if (item.level === 0) {
+        const icon = item.hasChildren ? '📁' : '●';
+        return `${icon} ${escapeHTML(p.name)} (${escapeHTML(p.code)})${isClosed}`;
+      } else {
+        return `&nbsp;&nbsp;&nbsp;&nbsp;↳ ⚙️ ${escapeHTML(p.name)} (${escapeHTML(p.code)})${isClosed}`;
+      }
+    }
+
+    function populateProjectParentOptions(currentProjectId = null) {
+      const select = document.getElementById('project-parent-select');
+      if (!select) return;
+
+      const all = appData.projects || [];
+      const descendants = new Set();
+      if (currentProjectId) {
+        function collectDescendants(pid) {
+          all.filter(p => p.parentId === pid).forEach(c => {
+            descendants.add(c.id);
+            collectDescendants(c.id);
+          });
+        }
+        collectDescendants(currentProjectId);
+      }
+
+      // Proyectos raíz activos disponibles como padres
+      const validParents = all.filter(p => 
+        p.status !== 'cerrado' && 
+        p.id !== currentProjectId && 
+        !descendants.has(p.id) &&
+        !p.parentId
+      );
+
+      select.innerHTML = `<option value="">-- Ninguno (Proyecto Principal / Raíz) --</option>` +
+        validParents.map(p => `<option value="${p.id}">📁 ${escapeHTML(p.name)} (${p.code})</option>`).join('');
+    }
+
     /* PROYECTO: CREAR / EDITAR */
     function openNewProjectModal() {
       document.getElementById('form-project').reset();
       document.getElementById('project-id').value = '';
       document.getElementById('project-status-select').value = 'en_curso';
+      populateProjectParentOptions(null);
+      document.getElementById('project-parent-select').value = '';
+      const btnDelete = document.getElementById('btn-delete-project');
+      if (btnDelete) btnDelete.style.display = 'none';
       document.getElementById('modal-project-title').textContent = 'Nuevo Proyecto';
       openModal('modal-project');
     }
@@ -7531,6 +8244,8 @@
       document.getElementById('project-color-input').value = prj.color || '#4f46e5';
       document.getElementById('project-status-select').value = prj.status || 'en_curso';
       document.getElementById('project-desc-input').value = prj.description || '';
+      populateProjectParentOptions(prj.id);
+      document.getElementById('project-parent-select').value = prj.parentId || '';
       const btnDelete = document.getElementById('btn-delete-project');
       if (btnDelete) btnDelete.style.display = 'inline-flex';
       openModal('modal-project');
@@ -7545,17 +8260,40 @@
         return;
       }
 
-      appData.projects = appData.projects.filter(p => p.id !== projectId);
-      // Tareas pasan a transversales
-      appData.tasks.forEach(t => {
-        if (t.projectId === projectId) t.projectId = null;
-      });
-      // Desvincular de reuniones
-      appData.meetings.forEach(m => {
-        if (m.projectIds) {
-          m.projectIds = m.projectIds.filter(id => id !== projectId);
-        }
-      });
+      const subprojects = (appData.projects || []).filter(p => p.parentId === projectId);
+      let deleteChildrenToo = false;
+      if (subprojects.length > 0) {
+        deleteChildrenToo = confirm(`El proyecto "${prj ? prj.name : ''}" tiene ${subprojects.length} subproyecto(s) o parte(s) vinculada(s).\n\n¿Deseas eliminar también sus subproyectos?\n\n• Pulsa ACEPTAR para eliminar el proyecto y sus subproyectos.\n• Pulsa CANCELAR para conservar los subproyectos (pasarán a ser proyectos raíz independientes).`);
+      }
+
+      if (deleteChildrenToo) {
+        const idsToDelete = [projectId, ...subprojects.map(s => s.id)];
+        appData.projects = appData.projects.filter(p => !idsToDelete.includes(p.id));
+        appData.tasks.forEach(t => {
+          if (idsToDelete.includes(t.projectId)) t.projectId = null;
+        });
+        appData.meetings.forEach(m => {
+          if (m.projectIds) {
+            m.projectIds = m.projectIds.filter(id => !idsToDelete.includes(id));
+          }
+        });
+      } else {
+        appData.projects = appData.projects.filter(p => p.id !== projectId);
+        // Si tenía subproyectos, desvincularlos para que pasen a ser raíz
+        appData.projects.forEach(p => {
+          if (p.parentId === projectId) p.parentId = null;
+        });
+        // Tareas pasan a transversales
+        appData.tasks.forEach(t => {
+          if (t.projectId === projectId) t.projectId = null;
+        });
+        // Desvincular de reuniones
+        appData.meetings.forEach(m => {
+          if (m.projectIds) {
+            m.projectIds = m.projectIds.filter(id => id !== projectId);
+          }
+        });
+      }
 
       saveData();
       populateFilterSelectors();
@@ -7572,16 +8310,42 @@
       const code = document.getElementById('project-code-input').value.trim().toUpperCase() || 'PRJ-' + (appData.projects.length + 1);
       const color = document.getElementById('project-color-input').value;
       const status = document.getElementById('project-status-select').value || 'en_curso';
+      const parentId = document.getElementById('project-parent-select')?.value || null;
       const desc = document.getElementById('project-desc-input').value.trim();
 
       if (id) {
         const prj = appData.projects.find(p => p.id === id);
         if (prj) {
+          const oldStatus = prj.status;
           prj.name = name;
           prj.code = code;
           prj.color = color;
           prj.status = status;
+          prj.parentId = parentId;
           prj.description = desc;
+
+          // Si el estado cambió en el modal (cierre o reactivación)
+          if (oldStatus !== status) {
+            const subprojects = (appData.projects || []).filter(p => p.parentId === id);
+            if (subprojects.length > 0) {
+              if (status === 'cerrado') {
+                if (confirm(`El proyecto "${prj.name}" tiene ${subprojects.length} parte(s) vinculada(s).\n\n¿Deseas cerrar también todos sus subproyectos?`)) {
+                  subprojects.forEach(s => s.status = 'cerrado');
+                }
+              } else if (status === 'en_curso') {
+                if (confirm(`¿Deseas reactivar también los ${subprojects.length} subproyecto(s) de "${prj.name}"?`)) {
+                  subprojects.forEach(s => s.status = 'en_curso');
+                }
+              }
+            } else if (status === 'en_curso' && parentId) {
+              const parentPrj = (appData.projects || []).find(p => p.id === parentId);
+              if (parentPrj && parentPrj.status === 'cerrado') {
+                if (confirm(`El proyecto principal "${parentPrj.name}" está cerrado.\n\n¿Deseas reactivar también el proyecto principal?`)) {
+                  parentPrj.status = 'en_curso';
+                }
+              }
+            }
+          }
         }
       } else {
         const newPrj = {
@@ -7590,6 +8354,7 @@
           name,
           color,
           status,
+          parentId,
           description: desc,
           createdAt: new Date().toISOString().split('T')[0]
         };
@@ -7608,16 +8373,19 @@
        SELECTORES Y FILTROS GLOBALES
        ========================================================================== */
     function populateFilterSelectors() {
-      // Filtro de proyectos (solo proyectos en curso)
+      // Filtro de proyectos (solo proyectos en curso con sangría jerárquica)
       const prjFilter = document.getElementById('filter-project');
       const curPrjVal = prjFilter.value;
-      const activeProjects = appData.projects.filter(p => p.status !== 'cerrado');
+      const hierarchical = getHierarchicalProjectsList(true);
+
       prjFilter.innerHTML = `
         <option value="all">Todos los Proyectos en Curso</option>
         <option value="none">Sin Proyecto (Transversales)</option>
-        ${activeProjects.map(p => `<option value="${p.id}">● ${escapeHTML(p.name)}</option>`).join('')}
+        ${hierarchical.map(item => `
+          <option value="${item.project.id}">${renderProjectOptionHTML(item)}</option>
+        `).join('')}
       `;
-      if (curPrjVal && curPrjVal !== 'all' && curPrjVal !== 'none' && !activeProjects.some(p => p.id === curPrjVal)) {
+      if (curPrjVal && curPrjVal !== 'all' && curPrjVal !== 'none' && !appData.projects.some(p => p.id === curPrjVal && p.status !== 'cerrado')) {
         prjFilter.value = 'all';
       } else {
         prjFilter.value = curPrjVal || 'all';
@@ -7635,6 +8403,7 @@
 
     function updateAllViewCounts() {
       const prjFilter = document.getElementById('filter-project')?.value || 'all';
+      const familyIds = (prjFilter !== 'all' && prjFilter !== 'none') ? getProjectFamilyIds(prjFilter) : [];
 
       // 1. Tareas pertenecientes a proyectos en curso
       const baseActiveTasks = (appData.tasks || []).filter(t => isProjectActive(t.projectId));
@@ -7643,7 +8412,7 @@
         if (prjFilter === 'none') {
           currentTasks = baseActiveTasks.filter(t => !t.projectId);
         } else {
-          currentTasks = baseActiveTasks.filter(t => t.projectId === prjFilter);
+          currentTasks = baseActiveTasks.filter(t => familyIds.includes(t.projectId));
         }
       }
 
@@ -7654,7 +8423,7 @@
         if (prjFilter === 'none') {
           currentMeetings = baseActiveMeetings.filter(m => !m.projectIds || m.projectIds.length === 0);
         } else {
-          currentMeetings = baseActiveMeetings.filter(m => Array.isArray(m.projectIds) && m.projectIds.includes(prjFilter));
+          currentMeetings = baseActiveMeetings.filter(m => Array.isArray(m.projectIds) && m.projectIds.some(pid => familyIds.includes(pid)));
         }
       }
 
@@ -7678,7 +8447,7 @@
         } else if (prjFilter === 'none') {
           badgeProjects.textContent = 0;
         } else {
-          badgeProjects.textContent = 1;
+          badgeProjects.textContent = familyIds.length;
         }
       }
       if (badgeLineage) badgeLineage.textContent = currentTasks.length;
@@ -7949,6 +8718,7 @@
             return {
               ...p,
               id: newPrjId,
+              parentId: p.parentId ? (idMap.get(p.parentId) || p.parentId) : null,
               code: code,
               status: p.status || 'en_curso',
               createdAt: new Date().toISOString().split('T')[0]
@@ -8161,6 +8931,8 @@
     window.closeGitNodeQuickPanel = closeGitNodeQuickPanel;
     window.highlightNodeConnections = highlightNodeConnections;
     window.clearNodeHighlight = clearNodeHighlight;
+    window.filterAndGoToKanban = filterAndGoToKanban;
+    window.openNewSubprojectModal = openNewSubprojectModal;
     window.initApp = initApp;
 
     // Arrancar la aplicación al cargar el DOM o inmediatamente si ya está listo
