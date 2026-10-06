@@ -1381,18 +1381,22 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-weight: 700;
-      font-size: 0.85rem;
       border-radius: var(--radius-sm);
-      border: none;
-      background: transparent;
-      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-muted);
       cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
     }
     .btn-icon-small:hover {
       background: var(--bg-card-hover);
-      color: var(--primary);
+      color: var(--text-main);
+      border-color: var(--border-highlight);
+    }
+    .btn-icon-small svg {
+      width: 14px;
+      height: 14px;
     }
 
     .graph-legend {
@@ -2340,15 +2344,28 @@
     }
 
     .subtask-delete-btn {
-      color: var(--text-dim);
-      background: transparent;
-      border: none;
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
       cursor: pointer;
-      padding: 4px;
+      padding: 0;
       border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+      flex-shrink: 0;
     }
     .subtask-delete-btn:hover {
       color: var(--danger);
+      border-color: var(--danger);
+      background: var(--danger-light);
+    }
+    .subtask-delete-btn svg {
+      width: 12px;
+      height: 12px;
     }
 
     /* GESTIÓN DE BLOQUEOS Y DEPENDENCIAS EN MODAL DE TAREA */
@@ -2453,20 +2470,28 @@
     }
 
     .dep-item-remove-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-dim);
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
       cursor: pointer;
-      padding: 2px 6px;
+      padding: 0;
       border-radius: var(--radius-sm);
-      font-size: 0.95rem;
-      line-height: 1;
       transition: all 0.15s ease;
       flex-shrink: 0;
     }
     .dep-item-remove-btn:hover {
       color: var(--danger);
+      border-color: var(--danger);
       background: var(--danger-light);
+    }
+    .dep-item-remove-btn svg {
+      width: 12px;
+      height: 12px;
     }
 
     .dep-empty-hint {
@@ -2666,18 +2691,18 @@
         <div class="header-center">
           <svg class="search-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" class="global-search-input" id="global-search" placeholder="Buscar tareas, proyectos, notas o @personas...">
-          <button type="button" id="btn-clear-search" title="Limpiar búsqueda" onclick="clearAllFilters()" style="display:none; position:absolute; right:34px; top:50%; transform:translateY(-50%); background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:1.15rem; line-height:1; padding:2px 6px;">&times;</button>
+          <button type="button" id="btn-clear-search" class="btn-icon-small" title="Limpiar búsqueda" onclick="clearAllFilters()" style="display:none; position:absolute; right:34px; top:50%; transform:translateY(-50%); width:22px; height:22px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           <span class="search-shortcut-hint">/</span>
         </div>
 
         <div class="header-right">
-          <button type="button" class="btn btn-secondary" id="btn-new-meeting" onclick="openNewMeetingModal()">
+          <button type="button" class="btn btn-secondary" id="btn-new-meeting" onclick="openNewMeetingModal()" title="Programar nueva reunión">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-            <span>+ Reunión</span>
+            <span>Reunión</span>
           </button>
-          <button type="button" class="btn btn-primary" id="btn-new-task" onclick="openNewTaskModal()">
+          <button type="button" class="btn btn-primary" id="btn-new-task" onclick="openNewTaskModal()" title="Crear nueva tarea">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>+ Nueva Tarea</span>
+            <span>Nueva Tarea</span>
           </button>
         </div>
       </header>
@@ -2709,7 +2734,8 @@
         <div class="filter-chips-group">
           <span style="font-size:0.78rem; color:var(--text-muted);" id="filter-stats-text">Mostrando tareas</span>
           <button type="button" class="btn btn-secondary" id="btn-toggle-kanban-fit" style="padding:4px 9px; font-size:0.75rem;" title="Alternar entre ajustar a pantalla o columnas anchas" onclick="toggleKanbanFit()">
-            ↔️ Ajustar pantalla
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            <span>Ajustar pantalla</span>
           </button>
         </div>
       </div>
@@ -2774,16 +2800,23 @@
               </select>
 
               <button type="button" class="btn btn-secondary" id="btn-toggle-bottlenecks" onclick="toggleBottleneckHighlight()" style="font-size:0.75rem; padding:5px 10px;" title="Resaltar cuellos de botella que bloquean el avance de otras tareas">
-                ⚡ Cuellos de Botella
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>Cuellos de Botella</span>
               </button>
             </div>
 
             <div class="git-toolbar-group">
               <div class="git-zoom-controls">
-                <button type="button" class="btn-icon-small" onclick="adjustGitGraphZoom(-0.15)" title="Reducir zoom">-</button>
+                <button type="button" class="btn-icon-small" onclick="adjustGitGraphZoom(-0.15)" title="Reducir zoom">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
                 <span id="git-graph-zoom-label" style="font-family:var(--font-mono); font-size:0.72rem; min-width:38px; text-align:center;">100%</span>
-                <button type="button" class="btn-icon-small" onclick="adjustGitGraphZoom(0.15)" title="Aumentar zoom">+</button>
-                <button type="button" class="btn-icon-small" onclick="resetGitGraphZoom()" title="Restablecer escala 100%">↺</button>
+                <button type="button" class="btn-icon-small" onclick="adjustGitGraphZoom(0.15)" title="Aumentar zoom">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+                <button type="button" class="btn-icon-small" onclick="resetGitGraphZoom()" title="Restablecer escala 100%">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
               </div>
               <span id="git-graph-stats" style="font-size:0.75rem; color:var(--text-dim);"></span>
             </div>
@@ -2848,9 +2881,15 @@
           <div class="calendar-header-nav">
             <div class="calendar-month-title" id="calendar-month-label">Mes Año</div>
             <div style="display:flex; gap:8px;">
-              <button class="btn btn-secondary" id="btn-cal-prev">&larr; Anterior</button>
+              <button class="btn btn-secondary" id="btn-cal-prev" title="Mes anterior">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>
+                <span>Anterior</span>
+              </button>
               <button class="btn btn-secondary" id="btn-cal-today">Hoy</button>
-              <button class="btn btn-secondary" id="btn-cal-next">Siguiente &rarr;</button>
+              <button class="btn btn-secondary" id="btn-cal-next" title="Mes siguiente">
+                <span>Siguiente</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
             </div>
           </div>
 
@@ -2901,7 +2940,10 @@
             <h2 style="font-family:var(--font-display); font-size:1.2rem; font-weight:700;">Reuniones Registradas</h2>
             <p style="font-size:0.8rem; color:var(--text-muted);">Actas, notas rápidas, compromisos adquiridos y asignación de proyectos</p>
           </div>
-          <button type="button" class="btn btn-primary" id="btn-create-meeting-view" onclick="openNewMeetingModal()">+ Programar Nueva Reunión</button>
+          <button type="button" class="btn btn-primary" id="btn-create-meeting-view" onclick="openNewMeetingModal()" title="Programar nueva reunión">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            <span>Programar Reunión</span>
+          </button>
         </div>
         <div class="meetings-grid" id="meetings-grid-container">
           <!-- Renderizado dinámico de tarjetas de reunión -->
@@ -2916,15 +2958,22 @@
             <p style="font-size:0.8rem; color:var(--text-muted);">Proyectos activos en curso y apartado especial para proyectos archivados/cerrados</p>
           </div>
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <div style="display:flex; background:var(--bg-card); padding:3px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
-              <button type="button" class="btn" id="tab-projects-active" style="padding:6px 14px; font-size:0.78rem; border:none; background:var(--primary); color:#fff; border-radius:var(--radius-sm);" onclick="switchProjectSubTab('en_curso')">
-                🟢 En Curso (<span id="count-projects-active">0</span>)
+            <div style="display:flex; background:var(--bg-card); padding:3px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); gap:2px;">
+              <button type="button" class="btn" id="tab-projects-active" style="padding:6px 12px; font-size:0.78rem; border:none; background:var(--primary); color:#fff; border-radius:var(--radius-sm); display:inline-flex; align-items:center; gap:6px;" onclick="switchProjectSubTab('en_curso')">
+                <span style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; flex-shrink:0;"></span>
+                <span>En Curso</span>
+                <span style="opacity:0.85; font-size:0.72rem;">(<span id="count-projects-active">0</span>)</span>
               </button>
-              <button type="button" class="btn" id="tab-projects-closed" style="padding:6px 14px; font-size:0.78rem; border:none; background:transparent; color:var(--text-muted); border-radius:var(--radius-sm);" onclick="switchProjectSubTab('cerrado')">
-                📁 Apartado Especial: Cerrados (<span id="count-projects-closed">0</span>)
+              <button type="button" class="btn" id="tab-projects-closed" style="padding:6px 12px; font-size:0.78rem; border:none; background:transparent; color:var(--text-muted); border-radius:var(--radius-sm); display:inline-flex; align-items:center; gap:6px;" onclick="switchProjectSubTab('cerrado')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:13px; height:13px; flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>Cerrados</span>
+                <span style="opacity:0.85; font-size:0.72rem;">(<span id="count-projects-closed">0</span>)</span>
               </button>
             </div>
-            <button type="button" class="btn btn-primary" id="btn-create-project" onclick="openNewProjectModal()">+ Nuevo Proyecto</button>
+            <button type="button" class="btn btn-primary" id="btn-create-project" onclick="openNewProjectModal()" title="Crear nuevo proyecto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Nuevo Proyecto</span>
+            </button>
           </div>
         </div>
         <div class="projects-grid" id="projects-grid-container">
@@ -2957,10 +3006,16 @@
 
             <div class="lineage-toolbar-group">
               <div class="git-zoom-controls">
-                <button type="button" class="btn-icon-small" onclick="adjustLineageZoom(-0.15)" title="Reducir zoom">-</button>
+                <button type="button" class="btn-icon-small" onclick="adjustLineageZoom(-0.15)" title="Reducir zoom">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
                 <span id="lineage-zoom-label" style="font-family:var(--font-mono); font-size:0.72rem; min-width:38px; text-align:center;">100%</span>
-                <button type="button" class="btn-icon-small" onclick="adjustLineageZoom(0.15)" title="Aumentar zoom">+</button>
-                <button type="button" class="btn-icon-small" onclick="resetLineageZoom()" title="Restablecer escala 100%">↺</button>
+                <button type="button" class="btn-icon-small" onclick="adjustLineageZoom(0.15)" title="Aumentar zoom">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+                <button type="button" class="btn-icon-small" onclick="resetLineageZoom()" title="Restablecer escala 100%">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
               </div>
               <span id="lineage-stats" style="font-size:0.75rem; color:var(--text-dim);"></span>
             </div>
@@ -3065,7 +3120,7 @@
     <div class="modal-box">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-task-title">Nueva Tarea</h3>
-        <button class="btn-icon" onclick="closeModal('modal-task')">&times;</button>
+        <button class="btn-icon" onclick="closeModal('modal-task')" title="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
 
       <form id="form-task" onsubmit="handleSaveTask(event)">
@@ -3233,7 +3288,7 @@
     <div class="modal-box" style="max-width:760px;">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-meeting-title">Acta de Reunión</h3>
-        <button class="btn-icon" onclick="closeModal('modal-meeting')">&times;</button>
+        <button class="btn-icon" onclick="closeModal('modal-meeting')" title="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
 
       <form id="form-meeting" onsubmit="handleSaveMeeting(event)">
@@ -3319,7 +3374,7 @@
     <div class="modal-box" style="max-width:540px;">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-project-title">Nuevo Proyecto</h3>
-        <button class="btn-icon" onclick="closeModal('modal-project')">&times;</button>
+        <button class="btn-icon" onclick="closeModal('modal-project')" title="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
 
       <form id="form-project" onsubmit="handleSaveProject(event)">
@@ -3385,7 +3440,7 @@
         <h3 class="modal-title" style="color:var(--warning); display:flex; align-items:center; gap:8px;">
           ⚠️ Subtareas Pendientes
         </h3>
-        <button class="btn-icon" onclick="closeModal('modal-complete-warnings')">&times;</button>
+        <button class="btn-icon" onclick="closeModal('modal-complete-warnings')" title="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div class="modal-body">
         <p id="complete-warnings-message" style="font-size:0.9rem; line-height:1.5;">
@@ -4268,7 +4323,10 @@
             <div style="font-size:1.05rem; font-weight:700; color:var(--text-main);">No hay tareas registradas en la aplicación</div>
             <div style="font-size:0.85rem; color:var(--text-dim); margin-top:6px;">Puedes crear una nueva tarea para comenzar o restaurar los datos de ejemplo si lo prefieres.</div>
             <div style="display:flex; justify-content:center; gap:10px; margin-top:16px;">
-              <button type="button" class="btn btn-primary" onclick="openNewTaskModal()">+ Nueva Tarea</button>
+              <button type="button" class="btn btn-primary" onclick="openNewTaskModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Nueva Tarea</span>
+              </button>
               <button type="button" class="btn btn-secondary" onclick="restoreDemoData()">Cargar datos de ejemplo</button>
             </div>
           </div>
@@ -4453,7 +4511,9 @@
       board.classList.toggle('scrollable');
       const isScrollable = board.classList.contains('scrollable');
       if (btn) {
-        btn.innerHTML = isScrollable ? '↔️ Ajustar pantalla' : '📜 Columnas anchas';
+        btn.innerHTML = isScrollable 
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg><span>Ajustar pantalla</span>' 
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span>Columnas anchas</span>';
       }
       showToast(isScrollable ? 'Vista de columnas anchas con desplazamiento' : 'Ajustado a pantalla (sin barra de desplazamiento)', 'info');
     }
@@ -4841,7 +4901,7 @@
             ${blockedByThis.length >= 2 ? `<span class="git-badge-outbound" style="background:rgba(245,158,11,0.25); color:#fde047; border:1px solid rgba(245,158,11,0.5); font-weight:700;">🌿 Fork (${blockedByThis.length})</span>` : ''}
             ${isCritical ? `<span class="git-badge-bottleneck">⚡ Cuello Crítico</span>` : ''}
           </div>
-          <button type="button" class="btn-icon-small" onclick="closeGitNodeQuickPanel()" title="Cerrar panel">&times;</button>
+          <button type="button" class="btn-icon-small" onclick="closeGitNodeQuickPanel()" title="Cerrar panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
 
         <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-top:2px;">${escapeHTML(task.title)}</div>
@@ -5678,15 +5738,18 @@
               </div>
               <div class="project-card-actions">
                 <button type="button" class="btn btn-secondary btn-action-subtle" onclick="openEditProjectModal('${prj.id}')" title="Editar proyecto">
-                  ✏️ Editar
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  <span>Editar</span>
                 </button>
                 ${isClosed ? `
                   <button type="button" class="btn btn-primary btn-action-subtle" style="background:var(--success); border-color:var(--success); color:#fff;" onclick="toggleProjectStatus('${prj.id}')" title="Reactivar proyecto">
-                    🔄 Reactivar
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    <span>Reactivar</span>
                   </button>
                 ` : `
                   <button type="button" class="btn btn-secondary btn-action-subtle" style="color:var(--danger);" onclick="toggleProjectStatus('${prj.id}')" title="Cerrar y archivar en el apartado especial">
-                    🔒 Cerrar
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span>Cerrar</span>
                   </button>
                 `}
               </div>
@@ -5749,7 +5812,8 @@
                         </div>
                         <div style="display:flex; align-items:center; gap:4px;">
                           <button type="button" class="btn btn-secondary btn-card-op" onclick="filterAndGoToKanban('${sub.id}')" title="Filtrar Kanban">
-                            📊 Kanban
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="11" rx="1"/></svg>
+                            <span>Kanban</span>
                           </button>
                           ${!isSubClosed ? `
                             <button type="button" class="btn btn-secondary btn-card-op" onclick="openNewTaskModal('${sub.id}')" title="Crear tarea">
@@ -5757,7 +5821,7 @@
                             </button>
                           ` : ''}
                           <button type="button" class="btn btn-secondary btn-card-op" style="padding:2px 5px;" onclick="openEditProjectModal('${sub.id}')" title="Editar este subproyecto">
-                            ✏️
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                           </button>
                         </div>
                       </div>
@@ -5784,7 +5848,8 @@
                   </button>
                 ` : ''}
                 <button type="button" class="btn btn-secondary btn-card-op" style="font-weight:600; color:var(--primary); display:inline-flex; align-items:center; gap:4px;" onclick="filterAndGoToKanban('${prj.id}')" title="Ir al Tablero Kanban filtrando por este proyecto">
-                  <span>📊 Kanban</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="11" rx="1"/></svg>
+                  <span>Kanban</span>
                 </button>
               </div>
             </div>
@@ -6179,7 +6244,7 @@
                 [${escapeHTML(task.code)}] ${escapeHTML(task.title)}
               </h3>
             </div>
-            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" style="padding:4px 8px;" title="Cerrar panel">✕</button>
+            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" title="Cerrar panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
 
           <!-- LINAJE EN CADENA -->
@@ -6262,7 +6327,7 @@
                 📅 ${formatLineageDate(meeting.date)} • 📍 ${escapeHTML(meeting.location || 'Sin sala')}
               </div>
             </div>
-            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" style="padding:4px 8px;" title="Cerrar panel">✕</button>
+            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" title="Cerrar panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
 
           <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
@@ -6319,7 +6384,7 @@
               </h3>
               ${parentProject ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">📁 Pertenece al Proyecto Maestro: <strong>${escapeHTML(parentProject.name)}</strong> (${parentProject.code})</div>` : ''}
             </div>
-            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" style="padding:4px 8px;" title="Cerrar panel">✕</button>
+            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" title="Cerrar panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
@@ -6368,7 +6433,7 @@
               </h3>
               ${subprojects.length > 0 ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">⚙️ Estructura: <strong>${subprojects.length} subsistemas/partes</strong></div>` : ''}
             </div>
-            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" style="padding:4px 8px;" title="Cerrar panel">✕</button>
+            <button type="button" class="btn-icon-small" onclick="closeLineageQuickPanel()" title="Cerrar panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
@@ -7288,7 +7353,7 @@
                 <span class="dep-item-code">${pTag}[${t.code}]</span>
                 <span class="dep-item-title" title="${escapeHTML(t.title)}">${escapeHTML(t.title)}</span>
               </div>
-              <button type="button" class="dep-item-remove-btn" title="Quitar dependencia" onclick="event.stopPropagation(); removeBlockerTask('${t.id}')">&times;</button>
+              <button type="button" class="dep-item-remove-btn" title="Quitar dependencia" onclick="event.stopPropagation(); removeBlockerTask('${t.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
           `;
         }).join('');
@@ -7312,7 +7377,7 @@
                 <span class="dep-item-code" style="color:#f59e0b;">${pTag}[${t.code}]</span>
                 <span class="dep-item-title" title="${escapeHTML(t.title)}">${escapeHTML(t.title)}</span>
               </div>
-              <button type="button" class="dep-item-remove-btn" title="Quitar bloqueo (desvincular)" onclick="event.stopPropagation(); removeBlockedTask('${t.id}')">&times;</button>
+              <button type="button" class="dep-item-remove-btn" title="Quitar bloqueo (desvincular)" onclick="event.stopPropagation(); removeBlockedTask('${t.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
           `;
         }).join('');
@@ -7800,7 +7865,7 @@
         <div class="subtask-item-row">
           <input type="checkbox" class="subtask-checkbox" ${sub.completed ? 'checked' : ''} onchange="toggleSubtaskBuffer(${idx})">
           <span class="subtask-title-text ${sub.completed ? 'done' : ''}">${escapeHTML(sub.title)}</span>
-          <button type="button" class="subtask-delete-btn" onclick="deleteSubtaskBuffer(${idx})">&times;</button>
+          <button type="button" class="subtask-delete-btn" title="Eliminar subtarea" onclick="deleteSubtaskBuffer(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
       `).join('');
     }
